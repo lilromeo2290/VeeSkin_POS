@@ -230,9 +230,9 @@ export function OrdersView() {
         </CardContent>
       </Card>
 
-      {/* Order detail dialog — shows the SAME receipt as the POS terminal */}
+      {/* Order detail dialog — thermal receipt format */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[340px] max-h-[90vh] overflow-y-auto p-0 gap-0 bg-white border-gray-300" style={{ borderRadius: '4px' }}>
           <DialogHeader className="sr-only">
             <DialogTitle>Receipt {selectedOrder?.orderNumber}</DialogTitle>
             <DialogDescription>Order receipt</DialogDescription>
@@ -242,7 +242,7 @@ export function OrdersView() {
             <Receipt order={{ ...selectedOrder, items: selectedOrder.items }} />
           )}
 
-          <div className="flex gap-2 pt-2 no-print">
+          <div className="flex gap-2 p-3 no-print border-t border-dashed border-gray-300">
             <Button
               variant="outline"
               className="flex-1"

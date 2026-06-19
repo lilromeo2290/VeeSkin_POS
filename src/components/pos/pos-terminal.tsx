@@ -557,27 +557,27 @@ export function PosTerminal() {
         </DialogContent>
       </Dialog>
 
-      {/* Receipt dialog — uses the shared Receipt component (single source of truth) */}
+      {/* Receipt dialog — thermal receipt format */}
       <Dialog open={!!lastOrder} onOpenChange={(open) => !open && setLastOrder(null)}>
-        <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[340px] max-h-[90vh] overflow-y-auto p-0 gap-0 bg-white border-gray-300 rounded-md shadow-xl" style={{ borderRadius: '4px' }}>
           <DialogHeader className="sr-only">
             <DialogTitle>Payment Complete</DialogTitle>
             <DialogDescription>Order receipt and confirmation</DialogDescription>
           </DialogHeader>
 
           {/* Success indicator */}
-          <div className="flex flex-col items-center text-center pb-2">
-            <div className="w-14 h-14 rounded-full bg-[#D4A574]/15 flex items-center justify-center mb-2">
-              <CheckCircle2 className="w-8 h-8 text-[#D4A574]" />
+          <div className="flex flex-col items-center text-center py-3 bg-[#D4A574]/5 border-b border-dashed border-gray-300">
+            <div className="w-12 h-12 rounded-full bg-[#D4A574]/15 flex items-center justify-center mb-1.5">
+              <CheckCircle2 className="w-7 h-7 text-[#D4A574]" />
             </div>
-            <h2 className="text-lg font-bold">Payment Complete</h2>
+            <h2 className="text-base font-bold">Payment Complete</h2>
           </div>
 
-          {/* The receipt — one component, kept by the system */}
+          {/* The thermal receipt */}
           {lastOrder && <Receipt order={lastOrder} />}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 no-print">
+          <div className="flex gap-2 p-3 no-print border-t border-dashed border-gray-300">
             <Button
               variant="outline"
               className="flex-1"
