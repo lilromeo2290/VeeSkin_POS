@@ -18,6 +18,7 @@ import {
   Search, Plus, Pencil, Trash2, Package, Loader2, DollarSign
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/currency'
 
 interface Product {
   id: string
@@ -262,8 +263,8 @@ export function ProductsManager() {
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium">${product.price.toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">${product.cost.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(product.price)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(product.cost)}</TableCell>
                         <TableCell className="text-right">
                           <Badge variant={margin >= 60 ? 'default' : margin >= 30 ? 'secondary' : 'outline'}>
                             {margin}%

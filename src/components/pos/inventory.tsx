@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label'
 import { Search, Boxes, AlertTriangle, PackageX, TrendingDown, Loader2, Save, Package } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/currency'
 
 interface Product {
   id: string
@@ -162,7 +163,7 @@ export function InventoryView() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Inventory Value</p>
-                <p className="text-2xl font-bold mt-1">${stats.inventoryValue.toFixed(2)}</p>
+                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.inventoryValue)}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-950 flex items-center justify-center">
                 <TrendingDown className="w-5 h-5 text-violet-600" />
@@ -252,14 +253,14 @@ export function InventoryView() {
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">${product.cost.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(product.cost)}</TableCell>
                         <TableCell className="text-center">
                           <span className={`text-lg font-bold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : ''}`}>
                             {product.stock}
                           </span>
                         </TableCell>
                         <TableCell className="text-center text-muted-foreground">{product.lowStock}</TableCell>
-                        <TableCell className="text-right font-medium">${stockValue.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(stockValue)}</TableCell>
                         <TableCell>
                           {isOut ? (
                             <Badge variant="destructive">Out of Stock</Badge>

@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { Search, ReceiptText, Eye, Banknote, CreditCard, Smartphone, Loader2, Calendar } from 'lucide-react'
+import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
 
 interface OrderItem {
   id: string
@@ -88,7 +89,7 @@ export function OrdersView() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Revenue</p>
-            <p className="text-2xl font-bold mt-1 text-[#D4A574]">${totalRevenue.toFixed(2)}</p>
+            <p className="text-2xl font-bold mt-1 text-[#D4A574]">{formatCurrency(totalRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -101,7 +102,7 @@ export function OrdersView() {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Avg Order Value</p>
             <p className="text-2xl font-bold mt-1">
-              ${filtered.length > 0 ? (totalRevenue / filtered.length).toFixed(2) : '0.00'}
+              {formatCurrency(filtered.length > 0 ? (totalRevenue / filtered.length) : 0)}
             </p>
           </CardContent>
         </Card>
@@ -189,9 +190,9 @@ export function OrdersView() {
                             <span className="text-xs">{order.paymentMethod}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">${order.subtotal.toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">${order.tax.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-bold">${order.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(order.subtotal)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(order.tax)}</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(order.total)}</TableCell>
                         <TableCell>
                           <Badge variant={order.status === 'COMPLETED' ? 'default' : order.status === 'REFUNDED' ? 'destructive' : 'secondary'}
                             className={order.status === 'COMPLETED' ? 'bg-[#D4A574]' : ''}>
@@ -262,10 +263,10 @@ export function OrdersView() {
                       <div className="flex-1">
                         <p className="font-medium">{item.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {item.quantity} × ${item.price.toFixed(2)}
+                          {item.quantity} × {formatCurrency(item.price)}
                         </p>
                       </div>
-                      <p className="font-medium">${item.subtotal.toFixed(2)}</p>
+                      <p className="font-medium">{formatCurrency(item.subtotal)}</p>
                     </div>
                   ))}
                 </div>
@@ -276,22 +277,22 @@ export function OrdersView() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${selectedOrder.subtotal.toFixed(2)}</span>
+                  <span>{formatCurrency(selectedOrder.subtotal)}</span>
                 </div>
                 {selectedOrder.discount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Discount</span>
-                    <span>-${selectedOrder.discount.toFixed(2)}</span>
+                    <span>{formatCurrencyNegative(selectedOrder.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax</span>
-                  <span>${selectedOrder.tax.toFixed(2)}</span>
+                  <span>{formatCurrency(selectedOrder.tax)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
-                  <span className="text-[#D4A574]">${selectedOrder.total.toFixed(2)}</span>
+                  <span className="text-[#D4A574]">{formatCurrency(selectedOrder.total)}</span>
                 </div>
               </div>
             </div>

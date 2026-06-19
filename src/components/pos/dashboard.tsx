@@ -10,6 +10,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/currency'
 
 interface DashboardData {
   today: { revenue: number; orders: number; itemsSold: number; avgOrderValue: number; revenueChange: number }
@@ -71,7 +72,7 @@ export function Dashboard() {
   const stats = [
     {
       label: "Today's Revenue",
-      value: `$${data.today.revenue.toFixed(2)}`,
+      value: formatCurrency(data.today.revenue),
       change: data.today.revenueChange,
       icon: DollarSign,
       color: 'rosegold',
@@ -92,7 +93,7 @@ export function Dashboard() {
     },
     {
       label: 'Avg. Order Value',
-      value: `$${data.today.avgOrderValue.toFixed(2)}`,
+      value: formatCurrency(data.today.avgOrderValue),
       change: null,
       icon: TrendingUp,
       color: 'rose',
@@ -149,7 +150,7 @@ export function Dashboard() {
             <div>
               <CardTitle>Sales - Last 7 Days</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Total: <span className="font-semibold text-foreground">${data.week.revenue.toFixed(2)}</span> across{' '}
+                Total: <span className="font-semibold text-foreground">{formatCurrency(data.week.revenue)}</span> across{' '}
                 <span className="font-semibold text-foreground">{data.week.orders}</span> orders
               </p>
             </div>
@@ -170,10 +171,10 @@ export function Dashboard() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+              <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => formatCurrency(Number(v))} />
               <Tooltip
                 contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}
-                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
+                formatter={(value: number) => [formatCurrency(value), 'Revenue']}
               />
               <Area
                 type="monotone"
@@ -213,7 +214,7 @@ export function Dashboard() {
                       <p className="text-sm font-medium truncate">{p.name}</p>
                       <p className="text-xs text-muted-foreground">{p.quantity} sold</p>
                     </div>
-                    <p className="text-sm font-semibold">${p.revenue.toFixed(2)}</p>
+                    <p className="text-sm font-semibold">{formatCurrency(p.revenue)}</p>
                   </div>
                 ))}
               </div>
@@ -248,7 +249,7 @@ export function Dashboard() {
                   </Pie>
                   <Tooltip
                     contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
+                    formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -292,7 +293,7 @@ export function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold">${order.total.toFixed(2)}</p>
+                      <p className="text-sm font-semibold">{formatCurrency(order.total)}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>

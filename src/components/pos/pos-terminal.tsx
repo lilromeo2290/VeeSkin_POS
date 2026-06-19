@@ -17,6 +17,7 @@ import {
 import { useCartStore } from '@/lib/cart-store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
 
 interface Product {
   id: string
@@ -232,7 +233,7 @@ export function PosTerminal() {
                       </div>
                       <p className="text-sm font-medium leading-tight line-clamp-2 flex-1">{product.name}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-base font-bold text-[#D4A574]">${product.price.toFixed(2)}</span>
+                        <span className="text-base font-bold text-[#D4A574]">{formatCurrency(product.price)}</span>
                         <Badge variant="outline" className="text-[10px] px-1.5">
                           {product.stock}
                         </Badge>
@@ -278,7 +279,7 @@ export function PosTerminal() {
                     <div key={item.productId} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">${item.price.toFixed(2)} each</p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(item.price)} each</p>
                       </div>
                       <div className="flex items-center gap-1">
                         <Button
@@ -306,7 +307,7 @@ export function PosTerminal() {
                         </Button>
                       </div>
                       <div className="w-16 text-right">
-                        <p className="text-sm font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-sm font-semibold">{formatCurrency(item.price * item.quantity)}</p>
                       </div>
                       <Button
                         variant="ghost"
@@ -325,7 +326,7 @@ export function PosTerminal() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal ({totals.itemCount} items)</span>
-                    <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
+                    <span className="font-medium">{formatCurrency(totals.subtotal)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Discount</span>
@@ -343,12 +344,12 @@ export function PosTerminal() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax (8%)</span>
-                    <span className="font-medium">${totals.tax.toFixed(2)}</span>
+                    <span className="font-medium">{formatCurrency(totals.tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-baseline">
                     <span className="font-semibold">Total</span>
-                    <span className="text-2xl font-bold text-[#D4A574]">${totals.total.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-[#D4A574]">{formatCurrency(totals.total)}</span>
                   </div>
                 </div>
                 <Button
@@ -356,7 +357,7 @@ export function PosTerminal() {
                   className="w-full h-12 text-base font-semibold brand-gradient hover:opacity-90 border-0"
                   onClick={() => setCheckoutOpen(true)}
                 >
-                  Charge ${totals.total.toFixed(2)}
+                  Charge {formatCurrency(totals.total)}
                 </Button>
               </div>
             </>
@@ -379,22 +380,22 @@ export function PosTerminal() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${totals.subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(totals.subtotal)}</span>
               </div>
               {totals.discountAmount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Discount</span>
-                  <span>-${totals.discountAmount.toFixed(2)}</span>
+                  <span>{formatCurrencyNegative(totals.discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tax</span>
-                <span>${totals.tax.toFixed(2)}</span>
+                <span>{formatCurrency(totals.tax)}</span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between items-baseline">
                 <span className="font-semibold">Total Due</span>
-                <span className="text-2xl font-bold text-[#D4A574]">${totals.total.toFixed(2)}</span>
+                <span className="text-2xl font-bold text-[#D4A574]">{formatCurrency(totals.total)}</span>
               </div>
             </div>
 
@@ -470,7 +471,7 @@ export function PosTerminal() {
               </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Paid</span>
-                <span className="text-[#D4A574]">${lastOrder?.total.toFixed(2)}</span>
+                <span className="text-[#D4A574]">{formatCurrency(lastOrder?.total ?? 0)}</span>
               </div>
             </div>
 

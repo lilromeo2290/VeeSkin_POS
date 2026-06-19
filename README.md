@@ -32,6 +32,15 @@ A point-of-sale web application for the **VeeSkin Essentials** luxury skincare &
 | Deep Rose | `#C77B8E` | Masks category, dark accents |
 | Warm Dark | `#1a1410` → `#2a1f18` | Sidebar gradient |
 
+## Currency
+
+All monetary values are displayed in **Ghana Cedis (GH₵)**. The currency symbol and formatting are centralized in `src/lib/currency.ts` — to switch to a different currency, update `CURRENCY_SYMBOL` and `CURRENCY_LOCALE` in that single file.
+
+| Helper | Output example |
+|--------|---------------|
+| `formatCurrency(120)` | `GH₵120.00` |
+| `formatCurrencyNegative(5.5)` | `-GH₵5.50` |
+
 ## Getting Started
 
 ### Prerequisites
