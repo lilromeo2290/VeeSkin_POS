@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, requirePermission, AuthError, getEffectivePermission, type SessionUser } from '@/lib/auth'
+import { calculateTax, calculateChange } from '@/lib/tax'
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requirePermission('orderCreate')
     const body = await request.json()
-    const { items, paymentMethod, customerName, discount, taxRate, notes } = body
+    const {
+      items, paymentMethod, customerName, discount, notes,
+      amountTendered, // for cash payments
+    } = body
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
@@ -63,9 +67,23 @@ export async function POST(request: NextRequest) {
 
     const subtotal = orderItems.reduce((s: number, it: { subtotal: number }) => s + it.subtotal, 0)
     const discountAmount = Number(discount) || 0
-    const taxableAmount = Math.max(0, subtotal - discountAmount)
-    const taxAmount = Math.round(taxableAmount * (Number(taxRate) || 0.08) * 100) / 100
-    const total = Math.round((taxableAmount + taxAmount) * 100) / 100
+    const tax = calculateTax(subtotal, discountAmount)
+
+    // Validate payment method
+    const validPaymentMethods = ['CASH', 'MOMO', 'CARD']
+    const payMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : 'CASH'
+
+    // Calculate change for cash payments
+    const tendered = payMethod === 'CASH' ? Number(amountTendered) || 0 : 0
+    const change = payMethod === 'CASH' ? calculateChange(tax.grandTotal, tendered) : 0
+
+    // For cash, require amount tendered >= grand total
+    if (payMethod === 'CASH' && tendered < tax.grandTotal) {
+      return NextResponse.json(
+        { error: `Amount tendered (GH₵${tendered.toFixed(2)}) is less than the total due (GH₵${tax.grandTotal.toFixed(2)})` },
+        { status: 400 }
+      )
+    }
 
     const count = await db.order.count()
     const orderNumber = `ORD-${String(1000 + count).padStart(5, '0')}`
@@ -84,11 +102,17 @@ export async function POST(request: NextRequest) {
       data: {
         orderNumber,
         status: 'COMPLETED',
-        paymentMethod: paymentMethod || 'CASH',
-        subtotal,
-        tax: taxAmount,
-        discount: discountAmount,
-        total,
+        paymentMethod: payMethod,
+        subtotal: tax.basicAmount,
+        discount: tax.discount,
+        taxableAmount: tax.taxableAmount,
+        nhil: tax.nhil,
+        getfund: tax.getfund,
+        vat: tax.vat,
+        tax: tax.totalTax,
+        total: tax.grandTotal,
+        amountTendered: tendered,
+        changeGiven: change,
         itemsCount: orderItems.reduce((s: number, it: { quantity: number }) => s + it.quantity, 0),
         customerName: customerName || null,
         cashierName: user.name,

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { calculateTax, type TaxBreakdown } from '@/lib/tax'
 
 export interface CartItem {
   productId: string
@@ -14,6 +15,7 @@ interface CartState {
   items: CartItem[]
   customerName: string
   discount: number
+  /** @deprecated kept for backward compat; Ghana tax breakdown is now computed automatically */
   taxRate: number
   addItem: (item: Omit<CartItem, 'quantity'>, qty?: number) => void
   removeItem: (productId: string) => void
@@ -24,13 +26,8 @@ interface CartState {
   setCustomerName: (name: string) => void
   setDiscount: (amount: number) => void
   setTaxRate: (rate: number) => void
-  totals: () => {
-    subtotal: number
-    discountAmount: number
-    tax: number
-    total: number
-    itemCount: number
-  }
+  /** Returns the full Ghana tax breakdown (NHIL, GETFund, VAT, Grand Total) */
+  totals: () => TaxBreakdown & { itemCount: number }
 }
 
 export const useCartStore = create<CartState>()(
@@ -39,7 +36,7 @@ export const useCartStore = create<CartState>()(
       items: [],
       customerName: '',
       discount: 0,
-      taxRate: 0.08,
+      taxRate: 0.15, // legacy — actual rates are now in src/lib/tax.ts
 
       addItem: (item, qty = 1) =>
         set((state) => {
@@ -94,18 +91,12 @@ export const useCartStore = create<CartState>()(
       setTaxRate: (rate) => set({ taxRate: Math.max(0, Math.min(1, rate)) }),
 
       totals: () => {
-        const { items, discount, taxRate } = get()
-        const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+        const { items, discount } = get()
+        const basicAmount = items.reduce((s, i) => s + i.price * i.quantity, 0)
         const itemCount = items.reduce((s, i) => s + i.quantity, 0)
-        const discountAmount = Math.min(discount, subtotal)
-        const taxableAmount = Math.max(0, subtotal - discountAmount)
-        const tax = Math.round(taxableAmount * taxRate * 100) / 100
-        const total = Math.round((taxableAmount + tax) * 100) / 100
+        const breakdown = calculateTax(basicAmount, discount)
         return {
-          subtotal: Math.round(subtotal * 100) / 100,
-          discountAmount: Math.round(discountAmount * 100) / 100,
-          tax,
-          total,
+          ...breakdown,
           itemCount,
         }
       },

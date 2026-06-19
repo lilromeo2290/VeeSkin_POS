@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword, requirePermission, AuthError } from '@/lib/auth'
+import { calculateTax } from '@/lib/tax'
 
 export async function POST() {
   try {
@@ -77,7 +78,7 @@ export async function POST() {
 
     // Create some sample orders
     const allProducts = await db.product.findMany()
-    const paymentMethods = ['CASH', 'CARD', 'DIGITAL']
+    const paymentMethods = ['CASH', 'MOMO', 'CARD']
     const now = new Date()
 
     for (let i = 0; i < 25; i++) {
@@ -102,8 +103,10 @@ export async function POST() {
         }
       })
       const subtotal = items.reduce((s, it) => s + it.subtotal, 0)
-      const tax = Math.round(subtotal * 0.08 * 100) / 100
-      const total = Math.round((subtotal + tax) * 100) / 100
+      const tax = calculateTax(subtotal, 0) // no discount on demo orders
+      const payMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
+      const tendered = payMethod === 'CASH' ? Math.ceil(tax.grandTotal / 10) * 10 : 0
+      const change = payMethod === 'CASH' ? Math.max(0, tendered - tax.grandTotal) : 0
 
       const daysAgo = Math.floor(Math.random() * 7)
       const createdAt = new Date(now.getTime() - daysAgo * 86400000 - Math.floor(Math.random() * 86400000))
@@ -112,10 +115,16 @@ export async function POST() {
         data: {
           orderNumber: `ORD-${String(1000 + i).padStart(5, '0')}`,
           status: 'COMPLETED',
-          paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-          subtotal,
-          tax,
-          total,
+          paymentMethod: payMethod,
+          subtotal: tax.basicAmount,
+          taxableAmount: tax.taxableAmount,
+          nhil: tax.nhil,
+          getfund: tax.getfund,
+          vat: tax.vat,
+          tax: tax.totalTax,
+          total: tax.grandTotal,
+          amountTendered: tendered,
+          changeGiven: change,
           itemsCount: items.reduce((s, it) => s + it.quantity, 0),
           cashierName: 'Boutique Staff',
           createdAt,

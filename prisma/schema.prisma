@@ -66,11 +66,20 @@ model Order {
   id            String      @id @default(cuid())
   orderNumber   String      @unique
   status        String      @default("COMPLETED") // COMPLETED, REFUNDED, PENDING
-  paymentMethod String      @default("CASH") // CASH, CARD, DIGITAL
-  subtotal      Float
-  tax           Float       @default(0)
+  // Payment: CASH = cash, MOMO = mobile money, CARD = bank card
+  paymentMethod String      @default("CASH")
+  // Ghana tax breakdown (all applied to taxableAmount)
+  subtotal      Float       // basic amount (sum of line items before tax/discount)
   discount      Float       @default(0)
-  total         Float
+  taxableAmount Float       @default(0) // subtotal - discount
+  nhil          Float       @default(0) // NHIL @ 2.5%
+  getfund       Float       @default(0) // GETFund @ 2.5%
+  vat           Float       @default(0) // VAT @ 10%
+  tax           Float       @default(0) // total tax (nhil + getfund + vat) — kept for backward compat
+  total         Float       // grand total (taxableAmount + tax)
+  // Cash payment details
+  amountTendered Float      @default(0) // cash amount given by customer
+  changeGiven    Float      @default(0) // change returned to customer
   itemsCount    Int
   customerName  String?
   cashierName   String?

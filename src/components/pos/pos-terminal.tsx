@@ -18,6 +18,9 @@ import { useCartStore } from '@/lib/cart-store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
+import { calculateChange } from '@/lib/tax'
+import { COMPANY_CONFIG } from '@/lib/company-config'
+import { Barcode } from '@/components/pos/barcode'
 
 interface Product {
   id: string
@@ -39,6 +42,35 @@ interface Category {
   icon: string | null
 }
 
+interface CompletedOrderItem {
+  id: string
+  name: string
+  price: number
+  quantity: number
+  subtotal: number
+}
+
+interface CompletedOrder {
+  id: string
+  orderNumber: string
+  paymentMethod: string
+  subtotal: number
+  discount: number
+  taxableAmount: number
+  nhil: number
+  getfund: number
+  vat: number
+  tax: number
+  total: number
+  amountTendered: number
+  changeGiven: number
+  itemsCount: number
+  customerName: string | null
+  cashierName: string | null
+  createdAt: string
+  items: CompletedOrderItem[]
+}
+
 const ICON_MAP: Record<string, React.ElementType> = {
   Droplets, FlaskConical, FlaskRound, Sparkles, Flower2, Hand, Package,
 }
@@ -55,9 +87,10 @@ export function PosTerminal() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState('CASH')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'MOMO' | 'CARD'>('CASH')
+  const [amountTendered, setAmountTendered] = useState<string>('')
   const [processing, setProcessing] = useState(false)
-  const [lastOrder, setLastOrder] = useState<{ orderNumber: string; total: number; items: any[] } | null>(null)
+  const [lastOrder, setLastOrder] = useState<CompletedOrder | null>(null)
 
   const cart = useCartStore()
 
@@ -88,6 +121,11 @@ export function PosTerminal() {
 
   async function handleCheckout() {
     if (cart.items.length === 0) return
+    const tendered = parseFloat(amountTendered) || 0
+    if (paymentMethod === 'CASH' && tendered < totals.grandTotal) {
+      toast.error(`Amount tendered must be at least ${formatCurrency(totals.grandTotal)}`)
+      return
+    }
     setProcessing(true)
     try {
       const res = await fetch('/api/orders', {
@@ -97,24 +135,23 @@ export function PosTerminal() {
           items: cart.items,
           paymentMethod,
           customerName: cart.customerName,
-          cashierName: 'Demo Cashier',
           discount: cart.discount,
-          taxRate: cart.taxRate,
+          amountTendered: paymentMethod === 'CASH' ? tendered : 0,
         }),
       })
-      if (!res.ok) throw new Error('Checkout failed')
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Checkout failed')
+      }
       const order = await res.json()
-      setLastOrder({
-        orderNumber: order.orderNumber,
-        total: order.total,
-        items: order.items,
-      })
+      setLastOrder(order)
       cart.clear()
       setCheckoutOpen(false)
+      setAmountTendered('')
       toast.success(`Order ${order.orderNumber} completed!`)
       await loadProducts()
-    } catch (e) {
-      toast.error('Checkout failed. Please try again.')
+    } catch (e: any) {
+      toast.error(e.message || 'Checkout failed. Please try again.')
       console.error(e)
     } finally {
       setProcessing(false)
@@ -325,8 +362,8 @@ export function PosTerminal() {
               <div className="border-t border-border p-4 space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal ({totals.itemCount} items)</span>
-                    <span className="font-medium">{formatCurrency(totals.subtotal)}</span>
+                    <span className="text-muted-foreground">Basic Amount ({totals.itemCount} items)</span>
+                    <span className="font-medium">{formatCurrency(totals.basicAmount)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Discount</span>
@@ -342,14 +379,28 @@ export function PosTerminal() {
                       />
                     </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax (8%)</span>
-                    <span className="font-medium">{formatCurrency(totals.tax)}</span>
+                  {totals.discount > 0 && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Taxable Amount</span>
+                      <span>{formatCurrency(totals.taxableAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>NHIL @ 2.5%</span>
+                    <span>{formatCurrency(totals.nhil)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>GETFund @ 2.5%</span>
+                    <span>{formatCurrency(totals.getfund)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>VAT @ 10%</span>
+                    <span>{formatCurrency(totals.vat)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-baseline">
-                    <span className="font-semibold">Total</span>
-                    <span className="text-2xl font-bold text-[#D4A574]">{formatCurrency(totals.total)}</span>
+                    <span className="font-semibold">Grand Total</span>
+                    <span className="text-2xl font-bold text-[#D4A574]">{formatCurrency(totals.grandTotal)}</span>
                   </div>
                 </div>
                 <Button
@@ -357,7 +408,7 @@ export function PosTerminal() {
                   className="w-full h-12 text-base font-semibold brand-gradient hover:opacity-90 border-0"
                   onClick={() => setCheckoutOpen(true)}
                 >
-                  Charge {formatCurrency(totals.total)}
+                  Charge {formatCurrency(totals.grandTotal)}
                 </Button>
               </div>
             </>
@@ -379,33 +430,47 @@ export function PosTerminal() {
                 <span>{totals.itemCount}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>{formatCurrency(totals.subtotal)}</span>
+                <span className="text-muted-foreground">Basic Amount</span>
+                <span>{formatCurrency(totals.basicAmount)}</span>
               </div>
-              {totals.discountAmount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Discount</span>
-                  <span>{formatCurrencyNegative(totals.discountAmount)}</span>
-                </div>
+              {totals.discount > 0 && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Discount</span>
+                    <span>{formatCurrencyNegative(totals.discount)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Taxable Amount</span>
+                    <span>{formatCurrency(totals.taxableAmount)}</span>
+                  </div>
+                </>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax</span>
-                <span>{formatCurrency(totals.tax)}</span>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>NHIL @ 2.5%</span>
+                <span>{formatCurrency(totals.nhil)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>GETFund @ 2.5%</span>
+                <span>{formatCurrency(totals.getfund)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>VAT @ 10%</span>
+                <span>{formatCurrency(totals.vat)}</span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between items-baseline">
-                <span className="font-semibold">Total Due</span>
-                <span className="text-2xl font-bold text-[#D4A574]">{formatCurrency(totals.total)}</span>
+                <span className="font-semibold">Grand Total</span>
+                <span className="text-2xl font-bold text-[#D4A574]">{formatCurrency(totals.grandTotal)}</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Payment Method</Label>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-3 gap-2">
+              <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'CASH' | 'MOMO' | 'CARD')} className="grid grid-cols-3 gap-2">
                 {[
                   { value: 'CASH', label: 'Cash', icon: Banknote },
+                  { value: 'MOMO', label: 'MoMo', icon: Smartphone },
                   { value: 'CARD', label: 'Card', icon: CreditCard },
-                  { value: 'DIGITAL', label: 'Digital', icon: Smartphone },
                 ].map((opt) => {
                   const Icon = opt.icon
                   return (
@@ -427,6 +492,48 @@ export function PosTerminal() {
                 })}
               </RadioGroup>
             </div>
+
+            {/* Cash payment: amount tendered + change */}
+            {paymentMethod === 'CASH' && (
+              <div className="space-y-3 rounded-lg border border-border p-3 bg-amber-50/50 dark:bg-amber-950/20">
+                <div className="space-y-2">
+                  <Label htmlFor="amount-tendered">Amount Tendered (Cash Given)</Label>
+                  <Input
+                    id="amount-tendered"
+                    type="number"
+                    min={totals.grandTotal}
+                    step="0.01"
+                    value={amountTendered}
+                    onChange={(e) => setAmountTendered(e.target.value)}
+                    placeholder={totals.grandTotal.toFixed(2)}
+                    className="text-lg font-semibold"
+                    autoFocus
+                  />
+                </div>
+                {/* Quick cash buttons */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {[totals.grandTotal, Math.ceil(totals.grandTotal / 10) * 10, Math.ceil(totals.grandTotal / 50) * 50, Math.ceil(totals.grandTotal / 100) * 100].filter((v, i, arr) => arr.indexOf(v) === i).map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setAmountTendered(amt.toFixed(2))}
+                      className="px-2.5 py-1 text-xs rounded-md border border-border hover:bg-muted transition-colors font-medium"
+                    >
+                      {formatCurrency(amt)}
+                    </button>
+                  ))}
+                </div>
+                {amountTendered && parseFloat(amountTendered) >= totals.grandTotal && (
+                  <div className="flex justify-between items-center pt-2 border-t border-border">
+                    <span className="text-sm font-medium">Change Due:</span>
+                    <span className="text-xl font-bold text-emerald-600">{formatCurrency(calculateChange(totals.grandTotal, parseFloat(amountTendered)))}</span>
+                  </div>
+                )}
+                {amountTendered && parseFloat(amountTendered) < totals.grandTotal && (
+                  <p className="text-xs text-red-600">Amount is less than the total due</p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCheckoutOpen(false)} disabled={processing}>
@@ -434,7 +541,7 @@ export function PosTerminal() {
             </Button>
             <Button
               onClick={handleCheckout}
-              disabled={processing}
+              disabled={processing || (paymentMethod === 'CASH' && (!amountTendered || parseFloat(amountTendered) < totals.grandTotal))}
               className="brand-gradient hover:opacity-90 border-0"
             >
               {processing ? (
@@ -450,41 +557,171 @@ export function PosTerminal() {
         </DialogContent>
       </Dialog>
 
-      {/* Receipt dialog */}
+      {/* Receipt dialog — full printable receipt with barcode */}
       <Dialog open={!!lastOrder} onOpenChange={(open) => !open && setLastOrder(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader className="sr-only">
             <DialogTitle>Payment Complete</DialogTitle>
             <DialogDescription>Order receipt and confirmation</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-[#D4A574]/15 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-9 h-9 text-[#D4A574]" />
-            </div>
-            <h2 className="text-xl font-bold">Payment Complete</h2>
-            <p className="text-sm text-muted-foreground mt-1">{lastOrder?.orderNumber}</p>
 
-            <div className="w-full mt-4 rounded-lg bg-muted/50 p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Items</span>
-                <span>{lastOrder?.items.length || 0}</span>
+          {/* Success indicator */}
+          <div className="flex flex-col items-center text-center pb-2">
+            <div className="w-14 h-14 rounded-full bg-[#D4A574]/15 flex items-center justify-center mb-2">
+              <CheckCircle2 className="w-8 h-8 text-[#D4A574]" />
+            </div>
+            <h2 className="text-lg font-bold">Payment Complete</h2>
+          </div>
+
+          {/* Printable receipt */}
+          <div className="receipt-printable font-mono text-xs space-y-2 border border-dashed border-border rounded-lg p-4 bg-white">
+            {/* Company header */}
+            <div className="text-center">
+              <p className="text-sm font-bold uppercase tracking-wide" style={{ color: '#1a1410' }}>{COMPANY_CONFIG.name}</p>
+              <p className="text-[10px] text-muted-foreground">{COMPANY_CONFIG.tagline}</p>
+              <p className="text-[10px] text-muted-foreground whitespace-pre-line">{COMPANY_CONFIG.location}</p>
+              <p className="text-[10px] text-muted-foreground">Tel/WhatsApp: {COMPANY_CONFIG.phone}</p>
+            </div>
+
+            <div className="border-t border-dashed border-border" />
+
+            {/* Receipt meta */}
+            <div className="space-y-0.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Receipt No:</span>
+                <span className="font-bold">{lastOrder?.orderNumber}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total Paid</span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Date &amp; Time:</span>
+                <span>{lastOrder ? new Date(lastOrder.createdAt).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cashier:</span>
+                <span>{lastOrder?.cashierName || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Customer:</span>
+                <span>{lastOrder?.customerName || 'Walk-in'}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-border" />
+
+            {/* Items table */}
+            <table className="w-full">
+              <thead>
+                <tr className="text-[9px] uppercase text-muted-foreground border-b border-border">
+                  <th className="text-left pb-1">Item</th>
+                  <th className="text-center pb-1 w-8">Qty</th>
+                  <th className="text-right pb-1 w-16">Price</th>
+                  <th className="text-right pb-1 w-16">Amt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lastOrder?.items.map((item) => (
+                  <tr key={item.id} className="border-b border-dotted border-border/50">
+                    <td className="py-1 text-[10px]">{item.name}</td>
+                    <td className="text-center text-[10px]">{item.quantity}</td>
+                    <td className="text-right text-[10px]">{formatCurrency(item.price)}</td>
+                    <td className="text-right text-[10px] font-medium">{formatCurrency(item.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Totals */}
+            <div className="space-y-0.5 pt-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Basic Amount:</span>
+                <span>{formatCurrency(lastOrder?.subtotal ?? 0)}</span>
+              </div>
+              {(lastOrder?.discount ?? 0) > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Discount:</span>
+                    <span>{formatCurrencyNegative(lastOrder?.discount ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>Taxable Amount:</span>
+                    <span>{formatCurrency(lastOrder?.taxableAmount ?? 0)}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>NHIL @ 2.5%:</span>
+                <span>{formatCurrency(lastOrder?.nhil ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>GETFund @ 2.5%:</span>
+                <span>{formatCurrency(lastOrder?.getfund ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>VAT @ 10%:</span>
+                <span>{formatCurrency(lastOrder?.vat ?? 0)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-sm pt-1 border-t border-border">
+                <span>GRAND TOTAL:</span>
                 <span className="text-[#D4A574]">{formatCurrency(lastOrder?.total ?? 0)}</span>
               </div>
             </div>
 
+            {/* Payment info */}
+            <div className="border-t border-dashed border-border pt-1 space-y-0.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payment:</span>
+                <span className="font-bold">
+                  {lastOrder?.paymentMethod === 'CASH' ? 'Cash' : lastOrder?.paymentMethod === 'MOMO' ? 'Mobile Money' : 'Bank Card'}
+                </span>
+              </div>
+              {lastOrder?.paymentMethod === 'CASH' && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amount Tendered:</span>
+                    <span>{formatCurrency(lastOrder.amountTendered)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Change Given:</span>
+                    <span className="font-medium">{formatCurrency(lastOrder.changeGiven)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Barcode */}
+            <div className="border-t border-dashed border-border pt-2 flex flex-col items-center">
+              <p className="text-[9px] text-muted-foreground mb-1">Scan to verify receipt</p>
+              {lastOrder && (
+                <Barcode
+                  value={lastOrder.orderNumber}
+                  width={1.5}
+                  height={40}
+                  displayValue={true}
+                />
+              )}
+              <p className="text-[8px] text-muted-foreground mt-1">
+                Verify at: /api/receipts/{lastOrder?.orderNumber}
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-[9px] text-muted-foreground pt-1">
+              <p>Thank you for shopping with {COMPANY_CONFIG.name}!</p>
+              <p>Goods sold are not returnable. Please keep your receipt.</p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
             <Button
               variant="outline"
-              className="mt-4 w-full"
+              className="flex-1"
               onClick={() => window.print()}
             >
               <Printer className="w-4 h-4 mr-2" />
-              Print Receipt
+              Print
             </Button>
             <Button
-              className="mt-2 w-full brand-gradient hover:opacity-90 border-0"
+              className="flex-1 brand-gradient hover:opacity-90 border-0"
               onClick={() => setLastOrder(null)}
             >
               New Order
