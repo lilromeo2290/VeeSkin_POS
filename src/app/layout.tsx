@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Brew POS — Point of Sale System",
-  description: "Modern point-of-sale web app for cafes, retail, and small businesses. Manage products, process sales, and track inventory in real time.",
-  keywords: ["POS", "point of sale", "retail", "cafe", "inventory", "sales"],
-  authors: [{ name: "Brew POS" }],
+  title: "VeeSkin Essentials POS — Point of Sale",
+  description: "Point-of-sale system for VeeSkin Essentials — skincare & perfume boutique. Manage products, process sales, and track inventory in real time.",
+  keywords: ["VeeSkin", "POS", "skincare", "perfume", "boutique", "retail", "point of sale"],
+  authors: [{ name: "VeeSkin Essentials" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/veeskin-brand.jpg",
   },
 };
 

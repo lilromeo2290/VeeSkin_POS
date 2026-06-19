@@ -9,61 +9,61 @@ export async function POST() {
     await db.product.deleteMany()
     await db.category.deleteMany()
 
-    // Create categories
+    // Create categories for skincare & perfume boutique
     const categories = await db.$transaction([
-      db.category.create({ data: { name: 'Coffee', icon: 'Coffee', color: '#d97706' } }),
-      db.category.create({ data: { name: 'Tea', icon: 'Leaf', color: '#16a34a' } }),
-      db.category.create({ data: { name: 'Pastries', icon: 'Croissant', color: '#ea580c' } }),
-      db.category.create({ data: { name: 'Sandwiches', icon: 'Sandwich', color: '#9333ea' } }),
-      db.category.create({ data: { name: 'Cold Drinks', icon: 'CupSoda', color: '#0891b2' } }),
-      db.category.create({ data: { name: 'Desserts', icon: 'CakeSlice', color: '#db2777' } }),
+      db.category.create({ data: { name: 'Cleansers', icon: 'Droplets', color: '#E6A9B6' } }),
+      db.category.create({ data: { name: 'Serums', icon: 'FlaskConical', color: '#D4A574' } }),
+      db.category.create({ data: { name: 'Moisturizers', icon: 'FlaskRound', color: '#D4AF37' } }),
+      db.category.create({ data: { name: 'Masks', icon: 'Sparkles', color: '#C77B8E' } }),
+      db.category.create({ data: { name: 'Perfumes', icon: 'Flower2', color: '#A67C52' } }),
+      db.category.create({ data: { name: 'Body Care', icon: 'Hand', color: '#B89A7A' } }),
     ])
 
-    const [coffee, tea, pastries, sandwiches, coldDrinks, desserts] = categories
+    const [cleansers, serums, moisturizers, masks, perfumes, bodyCare] = categories
 
-    // Create products
+    // Create products — skincare & perfume boutique catalog
     const products = [
-      // Coffee
-      { name: 'Espresso', sku: 'COF-001', price: 3.0, cost: 0.8, stock: 100, categoryId: coffee.id, description: 'Rich single shot espresso' },
-      { name: 'Americano', sku: 'COF-002', price: 3.5, cost: 0.9, stock: 100, categoryId: coffee.id, description: 'Espresso with hot water' },
-      { name: 'Cappuccino', sku: 'COF-003', price: 4.5, cost: 1.2, stock: 80, categoryId: coffee.id, description: 'Espresso with steamed milk foam' },
-      { name: 'Latte', sku: 'COF-004', price: 4.75, cost: 1.3, stock: 80, categoryId: coffee.id, description: 'Espresso with steamed milk' },
-      { name: 'Mocha', sku: 'COF-005', price: 5.25, cost: 1.5, stock: 60, categoryId: coffee.id, description: 'Espresso with chocolate and milk' },
-      { name: 'Flat White', sku: 'COF-006', price: 4.5, cost: 1.2, stock: 60, categoryId: coffee.id, description: 'Double shot ristretto with milk' },
-      { name: 'Macchiato', sku: 'COF-007', price: 4.0, cost: 1.1, stock: 50, categoryId: coffee.id, description: 'Espresso with milk foam' },
-      { name: 'Cold Brew', sku: 'COF-008', price: 5.0, cost: 1.4, stock: 40, categoryId: coffee.id, description: '12-hour steeped cold coffee' },
-      // Tea
-      { name: 'Green Tea', sku: 'TEA-001', price: 3.0, cost: 0.5, stock: 70, categoryId: tea.id, description: 'Classic Japanese green tea' },
-      { name: 'Earl Grey', sku: 'TEA-002', price: 3.25, cost: 0.6, stock: 70, categoryId: tea.id, description: 'Black tea with bergamot' },
-      { name: 'Chai Latte', sku: 'TEA-003', price: 4.5, cost: 1.0, stock: 50, categoryId: tea.id, description: 'Spiced tea with steamed milk' },
-      { name: 'Matcha Latte', sku: 'TEA-004', price: 5.0, cost: 1.4, stock: 45, categoryId: tea.id, description: 'Stone-ground matcha with milk' },
-      { name: 'Jasmine Tea', sku: 'TEA-005', price: 3.5, cost: 0.7, stock: 60, categoryId: tea.id, description: 'Fragrant jasmine-scented tea' },
-      // Pastries
-      { name: 'Butter Croissant', sku: 'PAS-001', price: 3.5, cost: 0.9, stock: 30, categoryId: pastries.id, description: 'Flaky butter croissant' },
-      { name: 'Chocolate Croissant', sku: 'PAS-002', price: 4.0, cost: 1.1, stock: 25, categoryId: pastries.id, description: 'Croissant with dark chocolate' },
-      { name: 'Cinnamon Roll', sku: 'PAS-003', price: 4.5, cost: 1.2, stock: 20, categoryId: pastries.id, description: 'Sweet cinnamon-glazed roll' },
-      { name: 'Blueberry Muffin', sku: 'PAS-004', price: 3.75, cost: 0.95, stock: 24, categoryId: pastries.id, description: 'Fresh blueberry muffin' },
-      { name: 'Pain au Chocolat', sku: 'PAS-005', price: 4.25, cost: 1.15, stock: 18, categoryId: pastries.id, description: 'Puff pastry with chocolate' },
-      // Sandwiches
-      { name: 'Turkey Club', sku: 'SAN-001', price: 8.5, cost: 2.5, stock: 15, categoryId: sandwiches.id, description: 'Turkey, bacon, lettuce, tomato' },
-      { name: 'Caprese', sku: 'SAN-002', price: 7.5, cost: 2.2, stock: 15, categoryId: sandwiches.id, description: 'Mozzarella, tomato, basil' },
-      { name: 'Ham & Cheese', sku: 'SAN-003', price: 6.5, cost: 1.9, stock: 18, categoryId: sandwiches.id, description: 'Classic ham and swiss cheese' },
-      { name: 'Veggie Wrap', sku: 'SAN-004', price: 7.0, cost: 2.0, stock: 12, categoryId: sandwiches.id, description: 'Grilled vegetables in a wrap' },
-      { name: 'BLT', sku: 'SAN-005', price: 6.75, cost: 1.95, stock: 14, categoryId: sandwiches.id, description: 'Bacon, lettuce, tomato' },
-      // Cold Drinks
-      { name: 'Iced Latte', sku: 'CLD-001', price: 4.75, cost: 1.3, stock: 50, categoryId: coldDrinks.id, description: 'Chilled latte over ice' },
-      { name: 'Iced Tea', sku: 'CLD-002', price: 3.5, cost: 0.7, stock: 60, categoryId: coldDrinks.id, description: 'House-made iced tea' },
-      { name: 'Lemonade', sku: 'CLD-003', price: 3.75, cost: 0.6, stock: 55, categoryId: coldDrinks.id, description: 'Fresh squeezed lemonade' },
-      { name: 'Sparkling Water', sku: 'CLD-004', price: 2.5, cost: 0.4, stock: 80, categoryId: coldDrinks.id, description: 'Carbonated mineral water' },
-      { name: 'Orange Juice', sku: 'CLD-005', price: 4.0, cost: 1.0, stock: 40, categoryId: coldDrinks.id, description: 'Fresh squeezed orange juice' },
-      { name: 'Smoothie', sku: 'CLD-006', price: 6.0, cost: 1.8, stock: 30, categoryId: coldDrinks.id, description: 'Mixed berry smoothie' },
-      // Desserts
-      { name: 'Cheesecake', sku: 'DES-001', price: 5.5, cost: 1.6, stock: 16, categoryId: desserts.id, description: 'New York style cheesecake' },
-      { name: 'Brownie', sku: 'DES-002', price: 3.5, cost: 0.9, stock: 20, categoryId: desserts.id, description: 'Fudgy chocolate brownie' },
-      { name: 'Tiramisu', sku: 'DES-003', price: 5.75, cost: 1.7, stock: 14, categoryId: desserts.id, description: 'Italian coffee-flavored dessert' },
-      { name: 'Macaron', sku: 'DES-004', price: 2.75, cost: 0.7, stock: 30, categoryId: desserts.id, description: 'French almond meringue cookie' },
-      { name: 'Cookie', sku: 'DES-005', price: 2.5, cost: 0.55, stock: 40, categoryId: desserts.id, description: 'Chocolate chip cookie' },
-      { name: 'Tres Leches', sku: 'DES-006', price: 5.25, cost: 1.5, stock: 12, categoryId: desserts.id, description: 'Sponge cake soaked in three milks' },
+      // Cleansers
+      { name: 'Rose Gel Cleanser', sku: 'CLS-001', price: 28.0, cost: 8.5, stock: 60, categoryId: cleansers.id, description: 'Gentle rose-infused gel cleanser' },
+      { name: 'Micellar Water', sku: 'CLS-002', price: 22.0, cost: 6.5, stock: 75, categoryId: cleansers.id, description: 'Soothing micellar cleansing water' },
+      { name: 'Foaming Milk Cleanser', sku: 'CLS-003', price: 26.0, cost: 7.5, stock: 50, categoryId: cleansers.id, description: 'Creamy milk-to-foam cleanser' },
+      { name: 'Exfoliating Polish', sku: 'CLS-004', price: 38.0, cost: 11.0, stock: 35, categoryId: cleansers.id, description: 'Weekly enzymatic exfoliator' },
+      { name: 'Cleansing Balm', sku: 'CLS-005', price: 42.0, cost: 12.5, stock: 30, categoryId: cleansers.id, description: 'Melting cleansing balm with botanical oils' },
+      { name: 'Eye Makeup Remover', sku: 'CLS-006', price: 18.0, cost: 5.0, stock: 80, categoryId: cleansers.id, description: 'Gentle dual-phase eye makeup remover' },
+      // Serums
+      { name: 'Vitamin C Brightening Serum', sku: 'SER-001', price: 68.0, cost: 18.0, stock: 40, categoryId: serums.id, description: '20% Vitamin C with ferulic acid' },
+      { name: 'Hyaluronic Hydration Serum', sku: 'SER-002', price: 54.0, cost: 14.0, stock: 55, categoryId: serums.id, description: 'Multi-weight hyaluronic acid serum' },
+      { name: 'Retinol Renewal Serum', sku: 'SER-003', price: 78.0, cost: 22.0, stock: 30, categoryId: serums.id, description: '0.5% encapsulated retinol' },
+      { name: 'Niacinamide Pore Serum', sku: 'SER-004', price: 42.0, cost: 11.5, stock: 45, categoryId: serums.id, description: '10% niacinamide + zinc' },
+      { name: 'Peptide Firming Serum', sku: 'SER-005', price: 92.0, cost: 28.0, stock: 22, categoryId: serums.id, description: 'Multi-peptide complex for firmness' },
+      { name: 'Rose Hip Facial Oil', sku: 'SER-006', price: 48.0, cost: 13.5, stock: 38, categoryId: serums.id, description: 'Cold-pressed rose hip seed oil' },
+      // Moisturizers
+      { name: 'Daily Dew Moisturizer', sku: 'MOI-001', price: 52.0, cost: 14.0, stock: 50, categoryId: moisturizers.id, description: 'Lightweight gel-cream moisturizer' },
+      { name: 'Rich Night Cream', sku: 'MOI-002', price: 72.0, cost: 20.0, stock: 35, categoryId: moisturizers.id, description: 'Restorative overnight nourishing cream' },
+      { name: 'Eye Contour Cream', sku: 'MOI-003', price: 58.0, cost: 16.0, stock: 40, categoryId: moisturizers.id, description: 'Brightening eye cream with caffeine' },
+      { name: 'SPF 30 Tinted Moisturizer', sku: 'MOI-004', price: 48.0, cost: 13.5, stock: 45, categoryId: moisturizers.id, description: 'Tinted moisturizer with broad-spectrum SPF' },
+      { name: 'Neck & Décolleté Cream', sku: 'MOI-005', price: 82.0, cost: 24.0, stock: 25, categoryId: moisturizers.id, description: 'Firming cream for neck and chest' },
+      // Masks
+      { name: 'Rose Petal Sheet Mask', sku: 'MSK-001', price: 12.0, cost: 3.0, stock: 100, categoryId: masks.id, description: 'Single-use hydrating rose sheet mask' },
+      { name: 'Clay Detox Mask', sku: 'MSK-002', price: 36.0, cost: 9.5, stock: 40, categoryId: masks.id, description: 'Kaolin + bentonite purifying mask' },
+      { name: 'Overnight Sleeping Mask', sku: 'MSK-003', price: 48.0, cost: 13.0, stock: 35, categoryId: masks.id, description: 'Gel sleeping mask for intense hydration' },
+      { name: 'Gold Eye Patches', sku: 'MSK-004', price: 28.0, cost: 7.5, stock: 60, categoryId: masks.id, description: 'Set of 5 gold-infused eye patches' },
+      { name: 'Enzyme Peel Mask', sku: 'MSK-005', price: 44.0, cost: 12.0, stock: 30, categoryId: masks.id, description: 'Papaya enzyme radiance mask' },
+      // Perfumes
+      { name: 'Rose Gold Eau de Parfum', sku: 'PRF-001', price: 145.0, cost: 38.0, stock: 25, categoryId: perfumes.id, description: '50ml — Damask rose, amber, sandalwood' },
+      { name: 'Pink Petals Eau de Toilette', sku: 'PRF-002', price: 98.0, cost: 26.0, stock: 35, categoryId: perfumes.id, description: '50ml — Peony, lychee, white musk' },
+      { name: 'Velvet Oud Parfum', sku: 'PRF-003', price: 220.0, cost: 65.0, stock: 15, categoryId: perfumes.id, description: '50ml — Oud, bergamot, vanilla' },
+      { name: 'Citrus Blossom EDT', sku: 'PRF-004', price: 88.0, cost: 22.0, stock: 40, categoryId: perfumes.id, description: '50ml — Neroli, bergamot, jasmine' },
+      { name: 'Vanilla Musk EDP', sku: 'PRF-005', price: 125.0, cost: 32.0, stock: 30, categoryId: perfumes.id, description: '50ml — Madagascar vanilla, musk, cedar' },
+      { name: 'Travel Spray Trio', sku: 'PRF-006', price: 75.0, cost: 22.0, stock: 45, categoryId: perfumes.id, description: '3 × 10ml travel sprays' },
+      { name: 'Solid Perfume Compact', sku: 'PRF-007', price: 52.0, cost: 14.0, stock: 50, categoryId: perfumes.id, description: 'Refillable rose solid perfume' },
+      // Body Care
+      { name: 'Rose Body Lotion', sku: 'BDY-001', price: 32.0, cost: 8.5, stock: 60, categoryId: bodyCare.id, description: '200ml — Nourishing rose-scented body lotion' },
+      { name: 'Sugar Body Scrub', sku: 'BDY-002', price: 38.0, cost: 10.0, stock: 45, categoryId: bodyCare.id, description: '200ml — Brown sugar & vanilla scrub' },
+      { name: 'Hand Cream Deluxe', sku: 'BDY-003', price: 22.0, cost: 5.5, stock: 80, categoryId: bodyCare.id, description: '75ml — Shea butter hand cream' },
+      { name: 'Body Oil Gold Shimmer', sku: 'BDY-004', price: 48.0, cost: 13.0, stock: 35, categoryId: bodyCare.id, description: '150ml — Luminous dry body oil' },
+      { name: 'Bath Soak Rose Petals', sku: 'BDY-005', price: 28.0, cost: 7.0, stock: 50, categoryId: bodyCare.id, description: '300g — Mineral bath soak with rose petals' },
+      { name: 'Lip Treatment Balm', sku: 'BDY-006', price: 18.0, cost: 4.5, stock: 90, categoryId: bodyCare.id, description: '15ml — Plumping lip balm with peptides' },
     ]
 
     for (const p of products) {
@@ -87,7 +87,7 @@ export async function POST() {
       if (selectedItems.length === 0) continue
 
       const items = selectedItems.map((p) => {
-        const qty = Math.floor(Math.random() * 3) + 1
+        const qty = Math.floor(Math.random() * 2) + 1
         return {
           name: p.name,
           price: p.price,
@@ -112,7 +112,7 @@ export async function POST() {
           tax,
           total,
           itemsCount: items.reduce((s, it) => s + it.quantity, 0),
-          cashierName: 'Demo Cashier',
+          cashierName: 'Boutique Staff',
           createdAt,
           items: { create: items },
         },

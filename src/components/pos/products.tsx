@@ -195,7 +195,7 @@ export function ProductsManager() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">
+            <Button onClick={openCreate} className="brand-gradient hover:opacity-90 border-0 shrink-0">
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
@@ -242,9 +242,9 @@ export function ProductsManager() {
                           <div className="flex items-center gap-3">
                             <div
                               className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#10b98120' }}
+                              style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#D4A57420' }}
                             >
-                              <Package className="w-4 h-4" style={{ color: product.category?.color || '#10b981' }} />
+                              <Package className="w-4 h-4" style={{ color: product.category?.color || '#D4A574' }} />
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-sm truncate">{product.name}</p>
@@ -275,7 +275,7 @@ export function ProductsManager() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant={product.isActive ? 'default' : 'outline'} className={product.isActive ? 'bg-emerald-600' : ''}>
+                          <Badge variant={product.isActive ? 'default' : 'outline'} className={product.isActive ? 'bg-[#D4A574]' : ''}>
                             {product.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </TableCell>
@@ -424,7 +424,7 @@ export function ProductsManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={handleSave} disabled={saving} className="brand-gradient hover:opacity-90 border-0">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {form.id ? 'Save Changes' : 'Create Product'}
             </Button>

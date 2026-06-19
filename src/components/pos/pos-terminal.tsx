@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, X, Banknote, CreditCard, Smartphone,
-  Coffee, Leaf, Croissant, Sandwich, CupSoda, CakeSlice, Package, Loader2, CheckCircle2, Printer
+  Droplets, FlaskConical, FlaskRound, Sparkles, Flower2, Hand, Package, Loader2, CheckCircle2, Printer
 } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { toast } from 'sonner'
@@ -39,7 +39,7 @@ interface Category {
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  Coffee, Leaf, Croissant, Sandwich, CupSoda, CakeSlice, Package,
+  Droplets, FlaskConical, FlaskRound, Sparkles, Flower2, Hand, Package,
 }
 
 function getIcon(name: string | null) {
@@ -149,7 +149,7 @@ export function PosTerminal() {
               className={cn(
                 'shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                 selectedCategory === 'all'
-                  ? 'bg-emerald-600 text-white'
+                  ? 'brand-gradient text-white'
                   : 'bg-card border border-border hover:bg-accent'
               )}
             >
@@ -165,7 +165,7 @@ export function PosTerminal() {
                   className={cn(
                     'shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                     active
-                      ? 'bg-emerald-600 text-white'
+                      ? 'brand-gradient text-white'
                       : 'bg-card border border-border hover:bg-accent'
                   )}
                   style={active && cat.color ? { backgroundColor: cat.color } : undefined}
@@ -211,28 +211,28 @@ export function PosTerminal() {
                       toast.success(`Added ${product.name}`)
                     }}
                     className={cn(
-                      'group relative text-left p-3 rounded-xl border border-border bg-card hover:border-emerald-500 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed',
-                      inCart && 'border-emerald-500 ring-1 ring-emerald-500/30'
+                      'group relative text-left p-3 rounded-xl border border-border bg-card hover:border-[#D4A574] hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed',
+                      inCart && 'border-[#D4A574] ring-1 ring-[#D4A574]/30'
                     )}
                   >
                     {inCart && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shadow-md">
+                      <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full brand-gradient text-white text-xs font-bold flex items-center justify-center shadow-md">
                         {inCart.quantity}
                       </div>
                     )}
                     <div className="flex flex-col h-full min-h-[100px]">
                       <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center mb-2"
-                        style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#10b98120' }}
+                        style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#D4A57420' }}
                       >
                         {(() => {
                           const Icon = getIcon(product.category?.icon)
-                          return <Icon className="w-4 h-4" style={{ color: product.category?.color || '#10b981' }} />
+                          return <Icon className="w-4 h-4" style={{ color: product.category?.color || '#D4A574' }} />
                         })()}
                       </div>
                       <p className="text-sm font-medium leading-tight line-clamp-2 flex-1">{product.name}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-base font-bold text-emerald-600">${product.price.toFixed(2)}</span>
+                        <span className="text-base font-bold text-[#D4A574]">${product.price.toFixed(2)}</span>
                         <Badge variant="outline" className="text-[10px] px-1.5">
                           {product.stock}
                         </Badge>
@@ -348,12 +348,12 @@ export function PosTerminal() {
                   <Separator />
                   <div className="flex justify-between items-baseline">
                     <span className="font-semibold">Total</span>
-                    <span className="text-2xl font-bold text-emerald-600">${totals.total.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-[#D4A574]">${totals.total.toFixed(2)}</span>
                   </div>
                 </div>
                 <Button
                   size="lg"
-                  className="w-full h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700"
+                  className="w-full h-12 text-base font-semibold brand-gradient hover:opacity-90 border-0"
                   onClick={() => setCheckoutOpen(true)}
                 >
                   Charge ${totals.total.toFixed(2)}
@@ -394,7 +394,7 @@ export function PosTerminal() {
               <Separator className="my-2" />
               <div className="flex justify-between items-baseline">
                 <span className="font-semibold">Total Due</span>
-                <span className="text-2xl font-bold text-emerald-600">${totals.total.toFixed(2)}</span>
+                <span className="text-2xl font-bold text-[#D4A574]">${totals.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -414,8 +414,8 @@ export function PosTerminal() {
                       className={cn(
                         'flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 cursor-pointer transition-all',
                         paymentMethod === opt.value
-                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950'
-                          : 'border-border hover:border-emerald-300'
+                          ? 'border-[#D4A574] bg-[#D4A574]/10'
+                          : 'border-border hover:border-[#D4A574]/50'
                       )}
                     >
                       <RadioGroupItem value={opt.value} id={opt.value} className="sr-only" />
@@ -434,7 +434,7 @@ export function PosTerminal() {
             <Button
               onClick={handleCheckout}
               disabled={processing}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="brand-gradient hover:opacity-90 border-0"
             >
               {processing ? (
                 <>
@@ -457,8 +457,8 @@ export function PosTerminal() {
             <DialogDescription>Order receipt and confirmation</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+            <div className="w-16 h-16 rounded-full bg-[#D4A574]/15 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-9 h-9 text-[#D4A574]" />
             </div>
             <h2 className="text-xl font-bold">Payment Complete</h2>
             <p className="text-sm text-muted-foreground mt-1">{lastOrder?.orderNumber}</p>
@@ -470,7 +470,7 @@ export function PosTerminal() {
               </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Paid</span>
-                <span className="text-emerald-600">${lastOrder?.total.toFixed(2)}</span>
+                <span className="text-[#D4A574]">${lastOrder?.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -483,7 +483,7 @@ export function PosTerminal() {
               Print Receipt
             </Button>
             <Button
-              className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700"
+              className="mt-2 w-full brand-gradient hover:opacity-90 border-0"
               onClick={() => setLastOrder(null)}
             >
               New Order

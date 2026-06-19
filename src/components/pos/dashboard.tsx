@@ -28,7 +28,7 @@ interface DashboardData {
   lowStockProducts: { id: string; name: string; sku: string; stock: number; lowStock: number }[]
 }
 
-const PIE_COLORS = ['#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899']
+const PIE_COLORS = ['#D4A574', '#E6A9B6', '#D4AF37', '#C77B8E', '#A67C52', '#B89A7A']
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
@@ -74,28 +74,28 @@ export function Dashboard() {
       value: `$${data.today.revenue.toFixed(2)}`,
       change: data.today.revenueChange,
       icon: DollarSign,
-      color: 'emerald',
+      color: 'rosegold',
     },
     {
       label: "Today's Orders",
       value: data.today.orders,
       change: null,
       icon: ShoppingBag,
-      color: 'amber',
+      color: 'pink',
     },
     {
       label: 'Items Sold',
       value: data.today.itemsSold,
       change: null,
       icon: Package,
-      color: 'violet',
+      color: 'gold',
     },
     {
       label: 'Avg. Order Value',
       value: `$${data.today.avgOrderValue.toFixed(2)}`,
       change: null,
       icon: TrendingUp,
-      color: 'cyan',
+      color: 'rose',
     },
   ]
 
@@ -106,10 +106,10 @@ export function Dashboard() {
         {stats.map((stat) => {
           const Icon = stat.icon
           const colorMap: Record<string, string> = {
-            emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
-            amber: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
-            violet: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
-            cyan: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400',
+            rosegold: 'bg-[#D4A574]/10 text-[#D4A574]',
+            pink: 'bg-[#E6A9B6]/15 text-[#C77B8E]',
+            gold: 'bg-[#D4AF37]/15 text-[#A67C00]',
+            rose: 'bg-[#C77B8E]/15 text-[#C77B8E]',
           }
           return (
             <Card key={stat.label} className="overflow-hidden">
@@ -126,11 +126,11 @@ export function Dashboard() {
                 {stat.change !== null && (
                   <div className="mt-3 flex items-center gap-1 text-xs">
                     {stat.change >= 0 ? (
-                      <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                      <TrendingUp className="w-3.5 h-3.5 text-[#D4A574]" />
                     ) : (
                       <TrendingDown className="w-3.5 h-3.5 text-red-600" />
                     )}
-                    <span className={stat.change >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
+                    <span className={stat.change >= 0 ? 'text-[#D4A574] font-medium' : 'text-red-600 font-medium'}>
                       {Math.abs(stat.change)}%
                     </span>
                     <span className="text-muted-foreground">vs yesterday</span>
@@ -164,8 +164,8 @@ export function Dashboard() {
             <AreaChart data={data.last7Days} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#D4A574" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#D4A574" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -178,7 +178,7 @@ export function Dashboard() {
               <Area
                 type="monotone"
                 dataKey="sales"
-                stroke="#10b981"
+                stroke="#D4A574"
                 strokeWidth={2.5}
                 fill="url(#salesGradient)"
               />
@@ -281,8 +281,8 @@ export function Dashboard() {
                     className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0">
-                        <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                      <div className="w-10 h-10 rounded-lg bg-[#D4A574]/10 flex items-center justify-center shrink-0">
+                        <ShoppingBag className="w-4 h-4 text-[#D4A574]" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{order.orderNumber}</p>

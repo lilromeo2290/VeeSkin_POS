@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Sidebar, type ViewType } from '@/components/pos/sidebar'
 import { Dashboard } from '@/components/pos/dashboard'
 import { PosTerminal } from '@/components/pos/pos-terminal'
@@ -39,7 +40,6 @@ export default function Home() {
       const data = await res.json()
       toast.success(data.message)
       setNeedsSeed(false)
-      // Reload the page to refresh data
       setTimeout(() => window.location.reload(), 800)
     } catch (e) {
       toast.error('Failed to seed data')
@@ -55,48 +55,55 @@ export default function Home() {
 
   if (needsSeed === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      <div className="min-h-screen flex items-center justify-center brand-bg-dark">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D4A574]" />
       </div>
     )
   }
 
   if (needsSeed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-amber-50 dark:from-emerald-950 dark:via-background dark:to-amber-950 p-4">
+      <div className="min-h-screen flex items-center justify-center brand-bg-dark text-white p-4">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="w-20 h-20 rounded-2xl bg-emerald-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/20">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+          <div className="relative w-32 h-32 mx-auto rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/10">
+            <Image
+              src="/veeskin-brand.jpg"
+              alt="VeeSkin Essentials"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome to Brew POS</h1>
-            <p className="text-muted-foreground">
-              Your Point of Sale system is ready to set up. Load demo data including products,
-              categories, and sample orders to get started instantly.
+          <div className="space-y-3">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight brand-gradient-text">VeeSkin</h1>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/70 mt-1">Essentials</p>
+            </div>
+            <p className="text-sm text-white/80 leading-relaxed">
+              Welcome to your boutique point-of-sale system. Load the demo catalog of skincare &
+              perfume products to begin processing sales and managing inventory.
             </p>
           </div>
           <Button
             onClick={handleSeed}
             disabled={seeding}
             size="lg"
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-base font-semibold"
+            className="w-full h-12 brand-gradient hover:opacity-90 text-white text-base font-semibold border-0 shadow-lg shadow-pink-900/30"
           >
             {seeding ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Setting up...
+                Setting up boutique...
               </>
             ) : (
               <>
                 <Database className="w-5 h-5 mr-2" />
-                Load Demo Data
+                Load Demo Catalog
               </>
             )}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Includes 6 categories, 35+ products, and 25 sample orders
+          <p className="text-xs text-white/50">
+            6 categories · 35+ skincare &amp; perfume products · 25 sample orders
           </p>
         </div>
       </div>
@@ -128,10 +135,14 @@ export default function Home() {
         {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+            <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-border">
+              <Image
+                src="/veeskin-brand.jpg"
+                alt="VeeSkin"
+                width={32}
+                height={32}
+                className="w-full h-full object-cover"
+              />
             </div>
             <h2 className="text-base font-semibold capitalize">
               {view === 'pos' ? 'POS' : view}

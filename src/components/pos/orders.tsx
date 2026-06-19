@@ -88,7 +88,7 @@ export function OrdersView() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Revenue</p>
-            <p className="text-2xl font-bold mt-1 text-emerald-600">${totalRevenue.toFixed(2)}</p>
+            <p className="text-2xl font-bold mt-1 text-[#D4A574]">${totalRevenue.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -194,7 +194,7 @@ export function OrdersView() {
                         <TableCell className="text-right font-bold">${order.total.toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge variant={order.status === 'COMPLETED' ? 'default' : order.status === 'REFUNDED' ? 'destructive' : 'secondary'}
-                            className={order.status === 'COMPLETED' ? 'bg-emerald-600' : ''}>
+                            className={order.status === 'COMPLETED' ? 'bg-[#D4A574]' : ''}>
                             {order.status}
                           </Badge>
                         </TableCell>
@@ -291,7 +291,7 @@ export function OrdersView() {
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
-                  <span className="text-emerald-600">${selectedOrder.total.toFixed(2)}</span>
+                  <span className="text-[#D4A574]">${selectedOrder.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

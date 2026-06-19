@@ -125,8 +125,8 @@ export function InventoryView() {
                 <p className="text-xs text-muted-foreground">Total Products</p>
                 <p className="text-2xl font-bold mt-1">{stats.total}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center">
-                <Boxes className="w-5 h-5 text-emerald-600" />
+              <div className="w-10 h-10 rounded-lg bg-[#D4A574]/10 flex items-center justify-center">
+                <Boxes className="w-5 h-5 text-[#D4A574]" />
               </div>
             </div>
           </CardContent>
@@ -235,9 +235,9 @@ export function InventoryView() {
                           <div className="flex items-center gap-3">
                             <div
                               className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#10b98120' }}
+                              style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#D4A57420' }}
                             >
-                              <Package className="w-4 h-4" style={{ color: product.category?.color || '#10b981' }} />
+                              <Package className="w-4 h-4" style={{ color: product.category?.color || '#D4A574' }} />
                             </div>
                             <p className="font-medium text-sm">{product.name}</p>
                           </div>
@@ -266,7 +266,7 @@ export function InventoryView() {
                           ) : isLow ? (
                             <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">Low</Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">In Stock</Badge>
+                            <Badge variant="outline" className="bg-[#D4A574]/10 text-[#D4A574]">In Stock</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -332,7 +332,7 @@ export function InventoryView() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={saveStock} className="bg-emerald-600 hover:bg-emerald-700">
+            <AlertDialogAction onClick={saveStock} className="brand-gradient hover:opacity-90 border-0">
               <Save className="w-4 h-4 mr-2" />
               Save
             </AlertDialogAction>
