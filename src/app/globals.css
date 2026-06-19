@@ -137,55 +137,16 @@
 }
 
 /* ─── Print styles ────────────────────────────────────────────────────────────
-   When printing (window.print()), hide everything except the receipt.
-   Only the element with class .receipt-printable (and its contents) is shown.
-   This ensures the printed receipt matches what's on screen — one receipt,
-   kept by the system and printed for the customer. */
+   Receipt printing uses a dedicated print window (see src/lib/print-receipt.ts)
+   which opens a clean HTML document with purpose-built print CSS. This avoids
+   CSS conflicts with the app's dialog/portal system.
+
+   The .no-print class below hides action buttons if someone uses Ctrl+P on the
+   main app window (though the recommended way to print is via the Print button
+   in the receipt dialog, which opens the dedicated print window). */
 
 @media print {
-  /* Hide everything by default */
-  body * {
-    visibility: hidden;
-  }
-
-  /* Show only the receipt and its descendants */
-  .receipt-printable,
-  .receipt-printable * {
-    visibility: visible;
-  }
-
-  /* Position the receipt at the top of the page, full width */
-  .receipt-printable {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    max-width: 80mm; /* standard thermal receipt width */
-    margin: 0 auto;
-    border: none;
-    padding: 4mm;
-    box-shadow: none;
-  }
-
-  /* Remove the dialog backdrop and any scroll containers */
-  [data-slot="dialog-overlay"],
-  [data-slot="dialog-content"] {
-    position: static !important;
-    transform: none !important;
-    background: white !important;
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: none !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  /* Hide dialog close buttons and action buttons when printing */
-  .receipt-printable ~ button,
-  [data-slot="dialog-close"],
-  [aria-label="Close"] {
+  .no-print {
     display: none !important;
   }
 }

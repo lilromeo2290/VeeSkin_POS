@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
 import { calculateChange } from '@/lib/tax'
 import { Receipt } from '@/components/pos/receipt'
+import { printReceipt } from '@/lib/print-receipt'
 
 interface Product {
   id: string
@@ -580,7 +581,7 @@ export function PosTerminal() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => window.print()}
+              onClick={() => lastOrder && printReceipt(lastOrder)}
             >
               <Printer className="w-4 h-4 mr-2" />
               Print

@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Search, ReceiptText, Eye, Banknote, CreditCard, Smartphone, Loader2, Calendar, Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/currency'
 import { Receipt } from '@/components/pos/receipt'
+import { printReceipt } from '@/lib/print-receipt'
 
 interface OrderItem {
   id: string
@@ -245,7 +246,7 @@ export function OrdersView() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => window.print()}
+              onClick={() => selectedOrder && selectedOrder.items && printReceipt({ ...selectedOrder, items: selectedOrder.items })}
             >
               <Printer className="w-4 h-4 mr-2" />
               Print
