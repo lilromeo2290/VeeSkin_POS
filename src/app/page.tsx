@@ -14,7 +14,7 @@ import { useCartStore } from '@/lib/cart-store'
 import { Button } from '@/components/ui/button'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
-import { canAccessView, type SessionUser, type Role } from '@/lib/auth-types'
+import { canUserAccessView, type SessionUser } from '@/lib/auth-types'
 
 export default function Home() {
   const [user, setUser] = useState<SessionUser | null>(null)
@@ -35,8 +35,8 @@ export default function Home() {
             setUser(data.user)
             // Pick a default view the user has permission for
             const defaultView: ViewType =
-              canAccessView(data.user.role as Role, 'dashboard') ? 'dashboard' :
-              canAccessView(data.user.role as Role, 'pos') ? 'pos' :
+              canUserAccessView(data.user, 'dashboard') ? 'dashboard' :
+              canUserAccessView(data.user, 'pos') ? 'pos' :
               'orders'
             setView(defaultView)
           }
@@ -74,8 +74,8 @@ export default function Home() {
   async function handleAuthenticated(u: SessionUser) {
     setUser(u)
     const defaultView: ViewType =
-      canAccessView(u.role, 'dashboard') ? 'dashboard' :
-      canAccessView(u.role, 'pos') ? 'pos' :
+      canUserAccessView(u, 'dashboard') ? 'dashboard' :
+      canUserAccessView(u, 'pos') ? 'pos' :
       'orders'
     setView(defaultView)
   }
@@ -149,6 +149,7 @@ export default function Home() {
               src="/veeskin-brand.jpg"
               alt="VeeSkin Essentials"
               fill
+              sizes="128px"
               className="object-cover"
               priority
             />
@@ -195,9 +196,9 @@ export default function Home() {
   }
 
   // Guard: if the current view is not permitted, fall back to a permitted one
-  const effectiveView: ViewType = canAccessView(user.role, view) ? view : (
-    canAccessView(user.role, 'pos') ? 'pos' :
-    canAccessView(user.role, 'orders') ? 'orders' :
+  const effectiveView: ViewType = canUserAccessView(user, view) ? view : (
+    canUserAccessView(user, 'pos') ? 'pos' :
+    canUserAccessView(user, 'orders') ? 'orders' :
     'pos'
   )
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth, AuthError, hasPermission } from '@/lib/auth'
+import { requireAuth, AuthError, getEffectivePermission } from '@/lib/auth'
 
 export async function GET(
   _request: NextRequest,
@@ -17,8 +17,8 @@ export async function GET(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // Cashiers can only view their own orders
-    if (!hasPermission(user.role, 'orderViewAll') && order.cashierId !== user.id) {
+    // Cashiers can only view their own orders (unless granted orderViewAll override)
+    if (!getEffectivePermission(user.role, 'orderViewAll', user.permissions) && order.cashierId !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

@@ -4,6 +4,7 @@ import {
   verifyPassword,
   signSession,
   setSessionCookie,
+  parsePermissionsJson,
   type Role,
 } from '@/lib/auth'
 
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
       role: user.role as Role,
       isActive: user.isActive,
+      permissions: parsePermissionsJson(user.permissionsJson),
     })
     await setSessionCookie(token)
 
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        permissions: parsePermissionsJson(user.permissionsJson),
       },
     })
   } catch (error) {

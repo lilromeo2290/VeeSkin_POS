@@ -17,16 +17,20 @@ datasource db {
 //   - CASHIER: POS terminal + own order history only
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  passwordHash String
-  role         String    @default("CASHIER") // ADMIN | MANAGER | CASHIER
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  orders       Order[]   @relation("OrderCashier")
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  passwordHash    String
+  role            String    @default("CASHIER") // ADMIN | MANAGER | CASHIER
+  // Per-user permission overrides (JSON). Keys are Permission names, values are true/false.
+  // Absent keys fall back to the role default from PERMISSIONS in auth-types.ts.
+  // Example: {"viewDashboard": true, "productDelete": false}
+  permissionsJson String?
+  isActive        Boolean   @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  orders          Order[]   @relation("OrderCashier")
 }
 
 model Category {

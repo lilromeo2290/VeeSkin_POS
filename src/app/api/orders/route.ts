@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth, requirePermission, AuthError, hasPermission, type SessionUser } from '@/lib/auth'
+import { requireAuth, requirePermission, AuthError, getEffectivePermission, type SessionUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
     if (status) where.status = status
 
-    // Cashiers can only see their own orders; admins/managers see all
-    if (!hasPermission(user.role, 'orderViewAll')) {
+    // Cashiers can only see their own orders; admins/managers see all (unless overridden)
+    if (!getEffectivePermission(user.role, 'orderViewAll', user.permissions)) {
       where.cashierId = user.id
     }
 

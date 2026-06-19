@@ -9,13 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, LogIn, ShieldCheck, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 
-interface SessionUser {
-  id: string
-  name: string
-  email: string
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER'
-  isActive: boolean
-}
+import { type SessionUser } from '@/lib/auth-types'
 
 interface AuthGateProps {
   onAuthenticated: (user: SessionUser) => void
@@ -119,6 +113,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
               src="/veeskin-brand.jpg"
               alt="VeeSkin Essentials"
               fill
+              sizes="96px"
               className="object-cover"
               priority
             />

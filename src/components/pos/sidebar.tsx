@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { ShoppingCart, LayoutDashboard, Package, ReceiptText, Boxes, Users as UsersIcon, Crown, Shield, UserCog, LogOut } from 'lucide-react'
-import { hasPermission, type Role, type SessionUser } from '@/lib/auth-types'
+import { hasEffectivePermission, type Role, type SessionUser } from '@/lib/auth-types'
 
 export type ViewType = 'dashboard' | 'pos' | 'products' | 'orders' | 'inventory' | 'users'
 
@@ -35,8 +35,8 @@ function getInitials(name: string): string {
 }
 
 export function Sidebar({ currentView, onNavigate, cartCount, user, onLogout }: SidebarProps) {
-  // Filter nav items based on the user's role
-  const navItems = ALL_NAV_ITEMS.filter((item) => hasPermission(user.role, item.permission))
+  // Filter nav items based on the user's EFFECTIVE permissions (role + overrides)
+  const navItems = ALL_NAV_ITEMS.filter((item) => hasEffectivePermission(user, item.permission))
   const roleBadge = ROLE_BADGE[user.role]
   const RoleIcon = roleBadge.icon
 

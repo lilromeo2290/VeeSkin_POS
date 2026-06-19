@@ -5,6 +5,9 @@ import {
   requirePermission,
   AuthError,
   type Role,
+  PERMISSIONS,
+  serializePermissionsJson,
+  type Permission,
 } from '@/lib/auth'
 
 export async function GET() {
@@ -18,13 +21,21 @@ export async function GET() {
         email: true,
         role: true,
         isActive: true,
+        permissionsJson: true,
         lastLoginAt: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
     })
 
-    return NextResponse.json(users)
+    // Parse permissionsJson for each user
+    const result = users.map((u) => ({
+      ...u,
+      permissions: u.permissionsJson ? JSON.parse(u.permissionsJson) : {},
+      permissionsJson: undefined,
+    }))
+
+    return NextResponse.json(result)
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
@@ -44,6 +55,7 @@ export async function POST(request: NextRequest) {
     const password = body.password
     const role: Role = ['ADMIN', 'MANAGER', 'CASHIER'].includes(body.role) ? body.role : 'CASHIER'
     const isActive = body.isActive !== false
+    const permissions = sanitizePermissions(body.permissions)
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -70,11 +82,22 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password)
     const user = await db.user.create({
-      data: { name, email, passwordHash, role, isActive },
-      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+      data: {
+        name,
+        email,
+        passwordHash,
+        role,
+        isActive,
+        permissionsJson: Object.keys(permissions).length > 0 ? serializePermissionsJson(permissions) : null,
+      },
+      select: { id: true, name: true, email: true, role: true, isActive: true, permissionsJson: true, createdAt: true },
     })
 
-    return NextResponse.json(user, { status: 201 })
+    return NextResponse.json({
+      ...user,
+      permissions: user.permissionsJson ? JSON.parse(user.permissionsJson) : {},
+      permissionsJson: undefined,
+    }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
@@ -82,4 +105,20 @@ export async function POST(request: NextRequest) {
     console.error('POST user error:', error)
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
   }
+}
+
+/**
+ * Sanitize an incoming permissions object — keep only valid Permission keys with boolean values.
+ */
+function sanitizePermissions(raw: unknown): Partial<Record<Permission, boolean>> {
+  if (typeof raw !== 'object' || raw === null) return {}
+  const validKeys = Object.keys(PERMISSIONS) as Permission[]
+  const result: Partial<Record<Permission, boolean>> = {}
+  for (const k of validKeys) {
+    const v = (raw as Record<string, unknown>)[k]
+    if (typeof v === 'boolean') {
+      result[k] = v
+    }
+  }
+  return result
 }

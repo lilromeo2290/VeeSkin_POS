@@ -6,6 +6,9 @@ import {
   getCurrentUser,
   AuthError,
   type Role,
+  PERMISSIONS,
+  serializePermissionsJson,
+  type Permission,
 } from '@/lib/auth'
 
 export async function PUT(
@@ -25,11 +28,21 @@ export async function PUT(
           { status: 400 }
         )
       }
-      if (body.role && body.role !== 'ADMIN') {
+      if (body.role && body.role !== currentUser.role) {
         return NextResponse.json(
-          { error: 'You cannot demote your own admin account' },
+          { error: 'You cannot change your own role' },
           { status: 400 }
         )
+      }
+      // Prevent admin from removing their own user-management permissions (lockout prevention)
+      if (body.permissions && typeof body.permissions === 'object') {
+        const p = body.permissions as Record<string, boolean>
+        if (p.userCreate === false || p.userUpdate === false) {
+          return NextResponse.json(
+            { error: 'You cannot remove your own user-management permissions' },
+            { status: 400 }
+          )
+        }
       }
     }
 
@@ -39,6 +52,7 @@ export async function PUT(
       role?: Role
       isActive?: boolean
       passwordHash?: string
+      permissionsJson?: string | null
     } = {}
 
     if (body.name) updateData.name = body.name.trim()
@@ -65,13 +79,25 @@ export async function PUT(
       updateData.passwordHash = await hashPassword(body.password)
     }
 
+    // Per-user permission overrides
+    if (body.permissions !== undefined) {
+      const sanitized = sanitizePermissions(body.permissions)
+      updateData.permissionsJson = Object.keys(sanitized).length > 0
+        ? serializePermissionsJson(sanitized)
+        : null // null = use role defaults
+    }
+
     const user = await db.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, isActive: true, permissionsJson: true, createdAt: true },
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json({
+      ...user,
+      permissions: user.permissionsJson ? JSON.parse(user.permissionsJson) : {},
+      permissionsJson: undefined,
+    })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
@@ -118,4 +144,20 @@ export async function DELETE(
     console.error('DELETE user error:', error)
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
   }
+}
+
+/**
+ * Sanitize an incoming permissions object — keep only valid Permission keys with boolean values.
+ */
+function sanitizePermissions(raw: unknown): Partial<Record<Permission, boolean>> {
+  if (typeof raw !== 'object' || raw === null) return {}
+  const validKeys = Object.keys(PERMISSIONS) as Permission[]
+  const result: Partial<Record<Permission, boolean>> = {}
+  for (const k of validKeys) {
+    const v = (raw as Record<string, unknown>)[k]
+    if (typeof v === 'boolean') {
+      result[k] = v
+    }
+  }
+  return result
 }

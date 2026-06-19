@@ -9,6 +9,10 @@ import {
   type Permission,
   PERMISSIONS,
   ROLE_LEVEL,
+  hasPermission,
+  getEffectivePermission,
+  canAccessView,
+  parsePermissionsJson,
 } from '@/lib/auth-types'
 
 // Re-export client-safe types and helpers so server code can import from one place
@@ -17,10 +21,18 @@ export {
   type SessionUser,
   type AuthSession,
   type Permission,
+  type PermissionMeta,
   PERMISSIONS,
+  PERMISSION_CATALOG,
+  PERMISSION_GROUPS,
   ROLE_LEVEL,
   hasPermission,
+  getEffectivePermission,
+  hasEffectivePermission,
   canAccessView,
+  canUserAccessView,
+  parsePermissionsJson,
+  serializePermissionsJson,
 } from '@/lib/auth-types'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -108,7 +120,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   // Verify user still exists and is active (defense against deleted/deactivated users)
   const user = await db.user.findUnique({
     where: { id: session.id },
-    select: { id: true, email: true, name: true, role: true, isActive: true },
+    select: { id: true, email: true, name: true, role: true, isActive: true, permissionsJson: true },
   })
 
   if (!user || !user.isActive) return null
@@ -119,6 +131,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role as Role,
     isActive: user.isActive,
+    permissions: parsePermissionsJson(user.permissionsJson),
   }
 }
 
@@ -136,13 +149,13 @@ export async function requireAuth(): Promise<SessionUser> {
 
 /**
  * Require a specific permission. Throws 403 if user lacks permission.
+ * Uses effective permission (role default + per-user overrides).
  */
 export async function requirePermission(permission: Permission): Promise<SessionUser> {
   const user = await requireAuth()
-  const allowedRoles = PERMISSIONS[permission]
-  if (!allowedRoles.includes(user.role)) {
+  if (!getEffectivePermission(user.role, permission, user.permissions)) {
     throw new AuthError(
-      `Insufficient permissions. Requires one of: ${allowedRoles.join(', ')}`,
+      `Insufficient permissions. This action requires: ${permission}`,
       403
     )
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,32 +16,32 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Search, Plus, Pencil, Trash2, Users as UsersIcon, Loader2, Shield, Crown, UserCog, Eye, EyeOff, Mail
+  Search, Plus, Pencil, Trash2, Users as UsersIcon, Loader2, Shield, Crown, UserCog, Eye, EyeOff, Mail, Lock, RotateCcw, SlidersHorizontal
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  type Role,
+  type Permission,
+  type SessionUser,
+  PERMISSION_CATALOG,
+  PERMISSION_GROUPS,
+  hasPermission,
+  getEffectivePermission,
+} from '@/lib/auth-types'
 
-type Role = 'ADMIN' | 'MANAGER' | 'CASHIER'
-
-interface User {
+interface UserRow {
   id: string
   name: string
   email: string
   role: Role
   isActive: boolean
+  permissions: Partial<Record<Permission, boolean>>
   lastLoginAt: string | null
   createdAt: string
 }
 
-interface CurrentUser {
-  id: string
-  name: string
-  email: string
-  role: Role
-  isActive: boolean
-}
-
 interface UsersManagerProps {
-  currentUser: CurrentUser
+  currentUser: SessionUser
 }
 
 interface FormState {
@@ -51,6 +51,8 @@ interface FormState {
   password: string
   role: Role
   isActive: boolean
+  // Per-user overrides. Absent keys = use role default.
+  permissions: Partial<Record<Permission, boolean>>
 }
 
 const EMPTY_FORM: FormState = {
@@ -59,22 +61,23 @@ const EMPTY_FORM: FormState = {
   password: '',
   role: 'CASHIER',
   isActive: true,
+  permissions: {},
 }
 
 const ROLE_CONFIG: Record<Role, { label: string; color: string; icon: React.ElementType; description: string }> = {
-  ADMIN: { label: 'Admin', color: 'bg-[#D4A574] text-white', icon: Crown, description: 'Full access including user management' },
-  MANAGER: { label: 'Manager', color: 'bg-[#E6A9B6] text-white', icon: Shield, description: 'Products, inventory, orders, dashboard' },
-  CASHIER: { label: 'Cashier', color: 'bg-[#D4AF37] text-white', icon: UserCog, description: 'POS terminal and own order history' },
+  ADMIN: { label: 'Admin', color: 'bg-[#D4A574] text-white', icon: Crown, description: 'Full access by default (customizable)' },
+  MANAGER: { label: 'Manager', color: 'bg-[#E6A9B6] text-white', icon: Shield, description: 'Products, inventory, orders, dashboard (customizable)' },
+  CASHIER: { label: 'Cashier', color: 'bg-[#D4AF37] text-white', icon: UserCog, description: 'POS terminal and own orders (customizable)' },
 }
 
 export function UsersManager({ currentUser }: UsersManagerProps) {
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
@@ -96,18 +99,19 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
   }
 
   function openCreate() {
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM })
     setDialogOpen(true)
   }
 
-  function openEdit(user: User) {
+  function openEdit(user: UserRow) {
     setForm({
       id: user.id,
       name: user.name,
       email: user.email,
-      password: '', // blank = no change
+      password: '',
       role: user.role,
       isActive: user.isActive,
+      permissions: { ...user.permissions },
     })
     setDialogOpen(true)
   }
@@ -133,6 +137,7 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
         email: form.email,
         role: form.role,
         isActive: form.isActive,
+        permissions: form.permissions,
       }
       if (form.password) payload.password = form.password
 
@@ -183,6 +188,17 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
     admins: users.filter((u) => u.role === 'ADMIN').length,
     managers: users.filter((u) => u.role === 'MANAGER').length,
     cashiers: users.filter((u) => u.role === 'CASHIER').length,
+  }
+
+  // Count how many overrides the user has (deviations from role defaults)
+  function countOverrides(user: UserRow): number {
+    let count = 0
+    for (const meta of PERMISSION_CATALOG) {
+      const effective = getEffectivePermission(user.role, meta.key, user.permissions)
+      const roleDefault = hasPermission(user.role, meta.key)
+      if (effective !== roleDefault) count++
+    }
+    return count
   }
 
   return (
@@ -262,9 +278,9 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Custom Permissions</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Last Login</TableHead>
-                    <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -273,6 +289,7 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
                     const cfg = ROLE_CONFIG[user.role]
                     const RoleIcon = cfg.icon
                     const isSelf = user.id === currentUser.id
+                    const overrides = countOverrides(user)
                     return (
                       <TableRow key={user.id}>
                         <TableCell>
@@ -299,6 +316,16 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {overrides > 0 ? (
+                            <Badge variant="outline" className="gap-1 bg-[#D4A574]/5 text-[#D4A574] border-[#D4A574]/30">
+                              <SlidersHorizontal className="w-3 h-3" />
+                              {overrides} override{overrides !== 1 ? 's' : ''}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Role defaults</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {user.isActive ? (
                             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Active</Badge>
                           ) : (
@@ -309,9 +336,6 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
                           {user.lastLoginAt
                             ? new Date(user.lastLoginAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
                             : 'Never'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -340,83 +364,94 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
         </CardContent>
       </Card>
 
-      {/* Create/Edit dialog */}
+      {/* Create/Edit dialog with permissions editor */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form.id ? 'Edit User' : 'Add New User'}</DialogTitle>
             <DialogDescription>
-              {form.id ? 'Update user details and permissions' : 'Create a new staff account'}
+              {form.id ? 'Update user details and customize permissions' : 'Create a new staff account with custom permissions'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="user-name">Full Name *</Label>
-              <Input
-                id="user-name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Maya Patel"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="user-email">Email *</Label>
-              <Input
-                id="user-email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="maya@veeskin.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="user-password">
-                {form.id ? 'New Password (leave blank to keep current)' : 'Password *'}
-              </Label>
-              <div className="relative">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="user-name">Full Name *</Label>
                 <Input
-                  id="user-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder={form.id ? '••••••••' : 'Min 6 characters'}
-                  className="pr-10"
+                  id="user-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Maya Patel"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-email">Email *</Label>
+                <Input
+                  id="user-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="maya@veeskin.com"
+                />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select
-                value={form.role}
-                onValueChange={(v) => setForm({ ...form, role: v as Role })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(['ADMIN', 'MANAGER', 'CASHIER'] as Role[]).map((r) => {
-                    const cfg = ROLE_CONFIG[r]
-                    const Icon = cfg.icon
-                    return (
-                      <SelectItem key={r} value={r}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4" />
-                          <span>{cfg.label}</span>
-                          <span className="text-xs text-muted-foreground">— {cfg.description}</span>
-                        </div>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="user-password">
+                  {form.id ? 'New Password (blank = keep)' : 'Password *'}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="user-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    placeholder={form.id ? '••••••••' : 'Min 6 characters'}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select
+                  value={form.role}
+                  onValueChange={(v) => setForm({ ...form, role: v as Role })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(['ADMIN', 'MANAGER', 'CASHIER'] as Role[]).map((r) => {
+                      const cfg = ROLE_CONFIG[r]
+                      const Icon = cfg.icon
+                      return (
+                        <SelectItem key={r} value={r}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            <span>{cfg.label}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            {/* Permissions editor */}
+            <PermissionsEditor
+              form={form}
+              setForm={setForm}
+              isSelf={form.id === currentUser.id}
+            />
+
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
                 <Label htmlFor="user-active" className="font-medium cursor-pointer">Active</Label>
@@ -460,6 +495,131 @@ export function UsersManager({ currentUser }: UsersManagerProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+// ─── Permissions Editor Sub-component ────────────────────────────────────────
+
+interface PermissionsEditorProps {
+  form: FormState
+  setForm: (updater: (prev: FormState) => FormState) => void
+  isSelf: boolean
+}
+
+function PermissionsEditor({ form, setForm, isSelf }: PermissionsEditorProps) {
+  // Compute override count for the badge
+  const overrideCount = useMemo(() => {
+    let count = 0
+    for (const meta of PERMISSION_CATALOG) {
+      if (meta.key in form.permissions) count++
+    }
+    return count
+  }, [form.permissions])
+
+  function togglePermission(key: Permission, value: boolean) {
+    setForm((prev) => {
+      const next = { ...prev.permissions }
+      const roleDefault = hasPermission(prev.role, key)
+      // If the new value matches the role default, remove the override (clean state)
+      if (value === roleDefault) {
+        delete next[key]
+      } else {
+        next[key] = value
+      }
+      return { ...prev, permissions: next }
+    })
+  }
+
+  function resetToDefaults() {
+    setForm((prev) => ({ ...prev, permissions: {} }))
+  }
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 bg-muted/40 border-b border-border">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-[#D4A574]" />
+          <div>
+            <p className="text-sm font-medium">Permissions</p>
+            <p className="text-xs text-muted-foreground">
+              {overrideCount > 0
+                ? `${overrideCount} custom override${overrideCount !== 1 ? 's' : ''} from ${ROLE_CONFIG[form.role].label} defaults`
+                : `Using ${ROLE_CONFIG[form.role].label} role defaults`}
+            </p>
+          </div>
+        </div>
+        {overrideCount > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={resetToDefaults}
+            className="text-xs h-7"
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            Reset to defaults
+          </Button>
+        )}
+      </div>
+
+      {/* Permission groups */}
+      <div className="max-h-72 overflow-y-auto divide-y divide-border">
+        {PERMISSION_GROUPS.map((group) => {
+          const groupPerms = PERMISSION_CATALOG.filter((p) => p.group === group)
+          return (
+            <div key={group} className="p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{group}</p>
+              <div className="space-y-1">
+                {groupPerms.map((meta) => {
+                  const roleDefault = hasPermission(form.role, meta.key)
+                  const hasOverride = meta.key in form.permissions
+                  const effective = hasOverride ? form.permissions[meta.key]! : roleDefault
+                  const isLocked = isSelf && (meta.key === 'userCreate' || meta.key === 'userUpdate')
+
+                  return (
+                    <div
+                      key={meta.key}
+                      className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 pr-3">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium">{meta.label}</p>
+                          {hasOverride ? (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1 bg-[#D4A574]/10 text-[#D4A574] border-[#D4A574]/30">
+                              Custom
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] py-0 px-1 text-muted-foreground">
+                              Default
+                            </Badge>
+                          )}
+                          {isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{meta.description}</p>
+                      </div>
+                      <Switch
+                        checked={effective}
+                        onCheckedChange={(v) => togglePermission(meta.key, v)}
+                        disabled={isLocked}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Footer hint */}
+      <div className="p-2.5 bg-muted/40 border-t border-border">
+        <p className="text-[11px] text-muted-foreground text-center">
+          Toggling a switch away from the role default creates a custom override.
+          Toggle it back to the default to clear the override.
+        </p>
+      </div>
     </div>
   )
 }

@@ -70,16 +70,17 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password)
     const user = await db.user.create({
       data: { name, email, passwordHash, role },
-      select: { id: true, name: true, email: true, role: true },
+      select: { id: true, name: true, email: true, role: true, isActive: true },
     })
 
-    // Auto-login the first admin
+    // Auto-login the first admin (no permission overrides = full role defaults)
     const token = await signSession({
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role as Role,
       isActive: true,
+      permissions: {},
     })
     await setSessionCookie(token)
 
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: { ...user, isActive: true },
+      user: { ...user, isActive: true, permissions: {} },
       message: 'Admin account created. You are now logged in.',
     })
   } catch (error) {
