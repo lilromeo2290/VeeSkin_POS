@@ -8,52 +8,125 @@ import { PosTerminal } from '@/components/pos/pos-terminal'
 import { ProductsManager } from '@/components/pos/products'
 import { OrdersView } from '@/components/pos/orders'
 import { InventoryView } from '@/components/pos/inventory'
+import { UsersManager } from '@/components/pos/users'
+import { AuthGate } from '@/components/pos/auth-gate'
 import { useCartStore } from '@/lib/cart-store'
 import { Button } from '@/components/ui/button'
-import { Loader2, Database, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import { canAccessView, type SessionUser, type Role } from '@/lib/auth-types'
 
 export default function Home() {
+  const [user, setUser] = useState<SessionUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [view, setView] = useState<ViewType>('dashboard')
   const [seeding, setSeeding] = useState(false)
   const [needsSeed, setNeedsSeed] = useState<boolean | null>(null)
   const cartCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0))
 
+  // Check auth state on mount
   useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.user) {
+            setUser(data.user)
+            // Pick a default view the user has permission for
+            const defaultView: ViewType =
+              canAccessView(data.user.role as Role, 'dashboard') ? 'dashboard' :
+              canAccessView(data.user.role as Role, 'pos') ? 'pos' :
+              'orders'
+            setView(defaultView)
+          }
+        }
+      } catch {
+        // Not authenticated
+      } finally {
+        setAuthLoading(false)
+      }
+    }
+    checkAuth()
+  }, [])
+
+  // Once authenticated, check if seed is needed
+  useEffect(() => {
+    if (!user) return
     async function checkSeed() {
       try {
         const res = await fetch('/api/dashboard')
+        if (res.status === 401 || res.status === 403) return
         const data = await res.json()
-        setNeedsSeed(!data || data.products.total === 0)
+        setNeedsSeed(!data || data.products?.total === 0)
       } catch {
         setNeedsSeed(true)
       }
     }
-    checkSeed()
-  }, [])
+    // Only admins see the "needs seed" screen; managers/cashiers assume data exists
+    if (user.role === 'ADMIN') {
+      checkSeed()
+    } else {
+      setNeedsSeed(false)
+    }
+  }, [user])
+
+  async function handleAuthenticated(u: SessionUser) {
+    setUser(u)
+    const defaultView: ViewType =
+      canAccessView(u.role, 'dashboard') ? 'dashboard' :
+      canAccessView(u.role, 'pos') ? 'pos' :
+      'orders'
+    setView(defaultView)
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      setUser(null)
+      useCartStore.getState().clear()
+      toast.success('Signed out')
+    } catch {
+      toast.error('Logout failed')
+    }
+  }
 
   async function handleSeed() {
     setSeeding(true)
     try {
       const res = await fetch('/api/seed', { method: 'POST' })
-      if (!res.ok) throw new Error('Seed failed')
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Seed failed')
+      }
       const data = await res.json()
       toast.success(data.message)
       setNeedsSeed(false)
-      setTimeout(() => window.location.reload(), 800)
-    } catch (e) {
-      toast.error('Failed to seed data')
+      setTimeout(() => window.location.reload(), 1000)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to seed data')
     } finally {
       setSeeding(false)
     }
   }
 
   async function handleReseed() {
-    if (!confirm('This will replace all existing data with fresh demo data. Continue?')) return
-    await handleSeed()
+    if (!confirm('This will replace ALL data (including users) with fresh demo data. You will be logged out. Continue?')) return
+    setSeeding(true)
+    try {
+      const res = await fetch('/api/seed', { method: 'POST' })
+      if (!res.ok) throw new Error('Seed failed')
+      const data = await res.json()
+      toast.success('Data reset. Please log in again with demo credentials.')
+      setTimeout(() => window.location.reload(), 1500)
+    } catch (e) {
+      toast.error('Failed to reseed')
+      setSeeding(false)
+    }
   }
 
-  if (needsSeed === null) {
+  // Loading state
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center brand-bg-dark">
         <Loader2 className="w-8 h-8 animate-spin text-[#D4A574]" />
@@ -61,6 +134,12 @@ export default function Home() {
     )
   }
 
+  // Not authenticated → show login/setup gate
+  if (!user) {
+    return <AuthGate onAuthenticated={handleAuthenticated} />
+  }
+
+  // Admin sees setup screen if no products
   if (needsSeed) {
     return (
       <div className="min-h-screen flex items-center justify-center brand-bg-dark text-white p-4">
@@ -80,8 +159,8 @@ export default function Home() {
               <p className="text-xs uppercase tracking-[0.3em] text-white/70 mt-1">Essentials</p>
             </div>
             <p className="text-sm text-white/80 leading-relaxed">
-              Welcome to your boutique point-of-sale system. Load the demo catalog of skincare &
-              perfume products to begin processing sales and managing inventory.
+              Welcome, {user.name}! Your admin account is ready. Now load the demo catalog of skincare &
+              perfume products to start selling.
             </p>
           </div>
           <Button
@@ -93,42 +172,62 @@ export default function Home() {
             {seeding ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Setting up boutique...
+                Loading catalog...
               </>
             ) : (
               <>
-                <Database className="w-5 h-5 mr-2" />
                 Load Demo Catalog
               </>
             )}
           </Button>
           <p className="text-xs text-white/50">
-            6 categories · 35+ skincare &amp; perfume products · 25 sample orders
+            6 categories · 35+ products · 25 sample orders · 3 demo staff accounts
           </p>
+          <button
+            onClick={handleLogout}
+            className="text-xs text-white/50 underline hover:text-white/80"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     )
   }
 
+  // Guard: if the current view is not permitted, fall back to a permitted one
+  const effectiveView: ViewType = canAccessView(user.role, view) ? view : (
+    canAccessView(user.role, 'pos') ? 'pos' :
+    canAccessView(user.role, 'orders') ? 'orders' :
+    'pos'
+  )
+
   return (
     <div className="min-h-screen flex bg-muted/30">
-      <Sidebar currentView={view} onNavigate={setView} cartCount={cartCount} />
+      <Sidebar
+        currentView={effectiveView}
+        onNavigate={setView}
+        cartCount={cartCount}
+        user={user}
+        onLogout={handleLogout}
+      />
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <header className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
           <div>
             <h2 className="text-lg font-semibold capitalize">
-              {view === 'pos' ? 'Point of Sale' : view}
+              {effectiveView === 'pos' ? 'Point of Sale' : effectiveView === 'users' ? 'User Management' : effectiveView}
             </h2>
             <p className="text-xs text-muted-foreground">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleReseed} disabled={seeding}>
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              Reset Demo Data
-            </Button>
+            {user.role === 'ADMIN' && (
+              <Button variant="outline" size="sm" onClick={handleReseed} disabled={seeding}>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Reset Demo Data
+              </Button>
+            )}
           </div>
         </header>
 
@@ -145,18 +244,19 @@ export default function Home() {
               />
             </div>
             <h2 className="text-base font-semibold capitalize">
-              {view === 'pos' ? 'POS' : view}
+              {effectiveView === 'pos' ? 'POS' : effectiveView === 'users' ? 'Users' : effectiveView}
             </h2>
           </div>
         </header>
 
         {/* View content */}
         <div className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
-          {view === 'dashboard' && <Dashboard />}
-          {view === 'pos' && <PosTerminal />}
-          {view === 'products' && <ProductsManager />}
-          {view === 'orders' && <OrdersView />}
-          {view === 'inventory' && <InventoryView />}
+          {effectiveView === 'dashboard' && <Dashboard />}
+          {effectiveView === 'pos' && <PosTerminal />}
+          {effectiveView === 'products' && <ProductsManager />}
+          {effectiveView === 'orders' && <OrdersView />}
+          {effectiveView === 'inventory' && <InventoryView />}
+          {effectiveView === 'users' && user.role === 'ADMIN' && <UsersManager currentUser={user} />}
         </div>
       </main>
     </div>

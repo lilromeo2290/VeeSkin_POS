@@ -10,6 +10,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Authentication & Roles ──────────────────────────────────────────────────
+// Role hierarchy: ADMIN > MANAGER > CASHIER
+//   - ADMIN:   full access (users, products, orders, inventory, dashboard, settings)
+//   - MANAGER: products, orders, inventory, dashboard (no user management)
+//   - CASHIER: POS terminal + own order history only
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         String    @default("CASHIER") // ADMIN | MANAGER | CASHIER
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]   @relation("OrderCashier")
+}
+
 model Category {
   id        String    @id @default(cuid())
   name      String    @unique
@@ -51,6 +70,8 @@ model Order {
   itemsCount    Int
   customerName  String?
   cashierName   String?
+  cashierId     String?
+  cashier       User?       @relation("OrderCashier", fields: [cashierId], references: [id])
   notes         String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

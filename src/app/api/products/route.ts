@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requirePermission, AuthError, getCurrentUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
+    await requirePermission('productRead')
+
     const { searchParams } = new URL(request.url)
     const categoryId = searchParams.get('categoryId')
     const search = searchParams.get('search')
@@ -32,6 +35,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(products)
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('GET products error:', error)
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
   }
@@ -39,6 +45,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requirePermission('productCreate')
+
     const body = await request.json()
     const product = await db.product.create({
       data: {
@@ -57,6 +65,9 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('POST product error:', error)
     return NextResponse.json({ error: 'Failed to create product', detail: String(error) }, { status: 500 })
   }

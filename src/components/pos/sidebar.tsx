@@ -2,26 +2,44 @@
 
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ShoppingCart, LayoutDashboard, Package, ReceiptText, Boxes, Store } from 'lucide-react'
+import { ShoppingCart, LayoutDashboard, Package, ReceiptText, Boxes, Users as UsersIcon, Crown, Shield, UserCog, LogOut } from 'lucide-react'
+import { hasPermission, type Role, type SessionUser } from '@/lib/auth-types'
 
-export type ViewType = 'dashboard' | 'pos' | 'products' | 'orders' | 'inventory'
+export type ViewType = 'dashboard' | 'pos' | 'products' | 'orders' | 'inventory' | 'users'
 
 interface SidebarProps {
   currentView: ViewType
   onNavigate: (view: ViewType) => void
   cartCount: number
+  user: SessionUser
+  onLogout: () => void
 }
 
-const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'pos', label: 'New Sale', icon: ShoppingCart },
-  { id: 'products', label: 'Products', icon: Package },
-  { id: 'orders', label: 'Orders', icon: ReceiptText },
-  { id: 'inventory', label: 'Inventory', icon: Boxes },
+const ALL_NAV_ITEMS: { id: ViewType; label: string; icon: React.ElementType; permission: 'viewDashboard' | 'viewPOS' | 'viewProducts' | 'viewOrders' | 'viewInventory' | 'viewUsers' }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'viewDashboard' },
+  { id: 'pos', label: 'New Sale', icon: ShoppingCart, permission: 'viewPOS' },
+  { id: 'products', label: 'Products', icon: Package, permission: 'viewProducts' },
+  { id: 'orders', label: 'Orders', icon: ReceiptText, permission: 'viewOrders' },
+  { id: 'inventory', label: 'Inventory', icon: Boxes, permission: 'viewInventory' },
+  { id: 'users', label: 'Users', icon: UsersIcon, permission: 'viewUsers' },
 ]
 
-export function Sidebar({ currentView, onNavigate, cartCount }: SidebarProps) {
+const ROLE_BADGE: Record<Role, { label: string; color: string; icon: React.ElementType }> = {
+  ADMIN: { label: 'Admin', color: 'bg-[#D4A574] text-white', icon: Crown },
+  MANAGER: { label: 'Manager', color: 'bg-[#E6A9B6] text-white', icon: Shield },
+  CASHIER: { label: 'Cashier', color: 'bg-[#D4AF37] text-white', icon: UserCog },
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+}
+
+export function Sidebar({ currentView, onNavigate, cartCount, user, onLogout }: SidebarProps) {
+  // Filter nav items based on the user's role
+  const navItems = ALL_NAV_ITEMS.filter((item) => hasPermission(user.role, item.permission))
+  const roleBadge = ROLE_BADGE[user.role]
+  const RoleIcon = roleBadge.icon
+
   return (
     <>
       {/* Desktop sidebar */}
@@ -69,22 +87,34 @@ export function Sidebar({ currentView, onNavigate, cartCount }: SidebarProps) {
             )
           })}
         </nav>
-        <div className="p-3 border-t border-white/10">
+
+        {/* User info + logout */}
+        <div className="p-3 border-t border-white/10 space-y-2">
           <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
-            <div className="w-9 h-9 rounded-full brand-gradient flex items-center justify-center text-white font-semibold text-sm">
-              VS
+            <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0', roleBadge.color)}>
+              {getInitials(user.name)}
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">Boutique Staff</p>
-              <p className="text-xs text-white/60 truncate">Station #1</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-white truncate">{user.name}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <RoleIcon className="w-3 h-3 text-white/60" />
+                <span className="text-xs text-white/60">{roleBadge.label}</span>
+              </div>
             </div>
+            <button
+              onClick={onLogout}
+              className="p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 brand-bg-dark border-t border-white/10 z-50">
-        <div className="grid grid-cols-5">
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${navItems.length + 1}, 1fr)` }}>
           {navItems.map((item) => {
             const Icon = item.icon
             const active = currentView === item.id
@@ -110,6 +140,14 @@ export function Sidebar({ currentView, onNavigate, cartCount }: SidebarProps) {
               </button>
             )
           })}
+          {/* Logout button */}
+          <button
+            onClick={onLogout}
+            className="flex flex-col items-center gap-1 py-2 px-1 text-[10px] font-medium text-white/60"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Exit</span>
+          </button>
         </div>
       </nav>
     </>

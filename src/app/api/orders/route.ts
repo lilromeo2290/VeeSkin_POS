@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth, requirePermission, AuthError, hasPermission, type SessionUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireAuth()
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
     const status = searchParams.get('status')
 
     const where: Record<string, unknown> = {}
     if (status) where.status = status
+
+    // Cashiers can only see their own orders; admins/managers see all
+    if (!hasPermission(user.role, 'orderViewAll')) {
+      where.cashierId = user.id
+    }
 
     const orders = await db.order.findMany({
       where,
@@ -19,6 +26,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(orders)
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('GET orders error:', error)
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
   }
@@ -26,8 +36,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requirePermission('orderCreate')
     const body = await request.json()
-    const { items, paymentMethod, customerName, cashierName, discount, taxRate, notes } = body
+    const { items, paymentMethod, customerName, discount, taxRate, notes } = body
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
@@ -59,6 +70,7 @@ export async function POST(request: NextRequest) {
     const count = await db.order.count()
     const orderNumber = `ORD-${String(1000 + count).padStart(5, '0')}`
 
+    // Decrement stock atomically
     for (const item of orderItems) {
       if (item.productId) {
         await db.product.update({
@@ -79,7 +91,8 @@ export async function POST(request: NextRequest) {
         total,
         itemsCount: orderItems.reduce((s: number, it: { quantity: number }) => s + it.quantity, 0),
         customerName: customerName || null,
-        cashierName: cashierName || null,
+        cashierName: user.name,
+        cashierId: user.id,
         notes: notes || null,
         items: { create: orderItems },
       },
@@ -88,6 +101,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('POST order error:', error)
     return NextResponse.json({ error: 'Failed to create order', detail: String(error) }, { status: 500 })
   }

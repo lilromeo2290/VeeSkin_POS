@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { hashPassword, requirePermission, AuthError } from '@/lib/auth'
 
 export async function POST() {
   try {
+    // Only admin can reseed (it wipes all data including users)
+    await requirePermission('userCreate')
+
     // Clean existing data
     await db.orderItem.deleteMany()
     await db.order.deleteMany()
     await db.product.deleteMany()
     await db.category.deleteMany()
+    await db.user.deleteMany()
 
     // Create categories for skincare & perfume boutique
     const categories = await db.$transaction([
@@ -119,11 +124,33 @@ export async function POST() {
       })
     }
 
+    // Create default demo users (one per role)
+    const defaultPasswordHash = await hashPassword('password123')
+    const demoUsers = [
+      { name: 'Isabella Romano', email: 'admin@veeskin.com', role: 'ADMIN' },
+      { name: 'Sophia Chen', email: 'manager@veeskin.com', role: 'MANAGER' },
+      { name: 'Maya Patel', email: 'cashier@veeskin.com', role: 'CASHIER' },
+    ]
+    for (const u of demoUsers) {
+      await db.user.create({
+        data: {
+          name: u.name,
+          email: u.email,
+          passwordHash: defaultPasswordHash,
+          role: u.role,
+          isActive: true,
+        },
+      })
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Seeded ${categories.length} categories, ${products.length} products, and 25 sample orders`,
+      message: `Seeded ${categories.length} categories, ${products.length} products, 25 sample orders, and 3 demo users (admin/manager/cashier — password: password123)`,
     })
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('Seed error:', error)
     return NextResponse.json({ error: 'Failed to seed data', detail: String(error) }, { status: 500 })
   }

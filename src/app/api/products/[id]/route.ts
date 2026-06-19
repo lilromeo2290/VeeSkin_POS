@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requirePermission, AuthError } from '@/lib/auth'
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requirePermission('productRead')
     const { id } = await params
     const product = await db.product.findUnique({
       where: { id },
@@ -16,6 +18,9 @@ export async function GET(
     }
     return NextResponse.json(product)
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('GET product error:', error)
     return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 })
   }
@@ -26,6 +31,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requirePermission('productUpdate')
     const { id } = await params
     const body = await request.json()
     const product = await db.product.update({
@@ -46,6 +52,9 @@ export async function PUT(
     })
     return NextResponse.json(product)
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('PUT product error:', error)
     return NextResponse.json({ error: 'Failed to update product', detail: String(error) }, { status: 500 })
   }
@@ -56,10 +65,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requirePermission('productDelete')
     const { id } = await params
     await db.product.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('DELETE product error:', error)
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
   }

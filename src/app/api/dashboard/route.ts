@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requirePermission, AuthError } from '@/lib/auth'
 
 export async function GET() {
   try {
+    await requirePermission('viewDashboard')
+
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const startOfYesterday = new Date(startOfToday.getTime() - 86400000)
@@ -125,6 +128,9 @@ export async function GET() {
       lowStockProducts: lowStock.map((p) => ({ id: p.id, name: p.name, sku: p.sku, stock: p.stock, lowStock: p.lowStock })),
     })
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
     console.error('GET dashboard error:', error)
     return NextResponse.json({ error: 'Failed to fetch dashboard data', detail: String(error) }, { status: 500 })
   }
