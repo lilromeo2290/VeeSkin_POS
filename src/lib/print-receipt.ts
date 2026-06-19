@@ -5,12 +5,12 @@ import type { ReceiptOrder } from '@/components/pos/receipt'
 /**
  * Generate a self-contained HTML document for the receipt, optimized for printing.
  *
- * This is used by printReceipt() to open a clean print window — separate from the
- * main app's DOM — so the receipt prints correctly without CSS conflicts from
- * dialogs, portals, or transforms.
+ * Used by printReceipt() to populate a hidden iframe, which is then printed.
+ * This avoids popup blockers entirely (unlike window.open) and prints reliably
+ * across all browsers.
  *
- * The HTML matches the on-screen Receipt component exactly (same fields, same order,
- * same styling), so what you see on screen is what prints.
+ * The HTML matches the on-screen Receipt component exactly (same fields, same
+ * order, same styling), so what you see on screen is what prints.
  */
 export function generateReceiptHtml(order: ReceiptOrder): string {
   const paymentLabel =
@@ -42,10 +42,7 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .receipt {
-      font-size: 11px;
-      line-height: 1.5;
-    }
+    .receipt { font-size: 11px; line-height: 1.5; }
     .header { text-align: center; margin-bottom: 8px; }
     .header .name { font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
     .header .tagline { font-size: 10px; color: #666; }
@@ -75,7 +72,6 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
     .barcode-number { font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: 2px; font-weight: bold; margin-top: 2px; }
     .footer { text-align: center; font-size: 9px; color: #999; margin-top: 8px; }
     .footer p { margin: 1px 0; }
-
     @media print {
       body { width: auto; padding: 0; }
       @page { margin: 5mm; }
@@ -160,51 +156,93 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
 }
 
 /**
- * Open a new browser window with the receipt HTML and trigger print.
+ * Print a receipt using a hidden iframe.
  *
- * This approach avoids CSS conflicts with the main app's dialog/portal system.
- * The receipt renders in a clean window with purpose-built print CSS, then
- * the print dialog opens automatically.
+ * WHY IFRAME (not window.open):
+ *   - Popup blockers in Chrome/Firefox/Safari block window.open() when not
+ *     triggered by a direct user gesture chain. In POS workflows, the print
+ *     call happens after async API responses, which breaks the gesture chain
+ *     and causes the popup to be silently blocked.
+ *   - A hidden iframe is never blocked because it's part of the same document.
+ *   - Printing an iframe's contentWindow triggers the browser's native print
+ *     dialog with ONLY the iframe's content (the receipt), not the main page.
  *
- * Usage: printReceipt(order)
+ * HOW IT WORKS:
+ *   1. Create an invisible <iframe> in the main document
+ *   2. Write the receipt HTML into the iframe's document
+ *   3. Wait for the iframe to load (defer to ensure rendering)
+ *   4. Call iframe.contentWindow.print() — opens print dialog with receipt
+ *   5. Remove the iframe after the print dialog closes
  */
 export function printReceipt(order: ReceiptOrder): void {
   const html = generateReceiptHtml(order)
-  const printWindow = window.open('', '_blank', 'width=400,height=600')
-  if (!printWindow) {
-    alert('Please allow pop-ups to print the receipt.')
+
+  // Create a hidden iframe
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = 'none'
+  iframe.style.visibility = 'hidden'
+
+  // Append to the document
+  document.body.appendChild(iframe)
+
+  // Write the receipt HTML into the iframe
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) {
+    console.error('Could not access iframe document')
+    document.body.removeChild(iframe)
     return
   }
-  printWindow.document.open()
-  printWindow.document.write(html)
-  printWindow.document.close()
 
-  // Wait for the window to load (including the SVG barcode), then print
-  printWindow.onload = () => {
-    printWindow.focus()
-    printWindow.print()
-    // Close the window after printing (most browsers do this automatically,
-    // but we keep it open briefly in case the user cancels)
-    setTimeout(() => {
-      printWindow.close()
-    }, 500)
-  }
+  doc.open()
+  doc.write(html)
+  doc.close()
+
+  // Wait for the iframe content to fully render before printing.
+  // Using a setTimeout ensures the DOM is painted, which is more
+  // reliable than onload for document.write'd content.
+  setTimeout(() => {
+    if (!iframe.contentWindow) {
+      document.body.removeChild(iframe)
+      return
+    }
+
+    // Trigger print on the iframe's window
+    iframe.contentWindow.focus()
+    iframe.contentWindow.print()
+
+    // Remove the iframe after a delay to let the print dialog finish.
+    // The afterprint event is more reliable but not universally supported,
+    // so we use a timeout as a fallback.
+    const cleanup = () => {
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe)
+      }
+    }
+
+    // Try afterprint event first (fires when print dialog closes)
+    iframe.contentWindow.addEventListener('afterprint', cleanup, { once: true })
+    // Fallback: remove after 1 second if afterprint doesn't fire
+    setTimeout(cleanup, 1000)
+  }, 250)
 }
 
 /**
  * Generate a simple Code128-style barcode as inline SVG.
  *
- * For the print window, we use a lightweight SVG barcode generator
- * (rather than loading the JsBarcode library in the new window).
- * This renders a visual barcode using the order number's character codes.
+ * For the print window/iframe, we use a lightweight SVG barcode generator
+ * (rather than loading the JsBarcode library). This renders a visual barcode
+ * using the order number's character codes.
  *
  * Note: This is a simplified visual barcode. For actual scanning,
  * the order number text is printed below it, and the public API endpoint
  * /api/receipts/[orderNumber] returns the full receipt data.
  */
 function generateBarcodeSvg(value: string): string {
-  // Generate a simple visual barcode using alternating bars
-  // Each character produces a pattern of bars
   const bars: string[] = []
   let x = 0
   const barWidth = 1.5
@@ -217,7 +255,6 @@ function generateBarcodeSvg(value: string): string {
   // Encode each character
   for (const char of value) {
     const code = char.charCodeAt(0)
-    // Use the character code to generate 4 bars of varying widths
     const pattern = [
       (code & 0x03) + 1,
       ((code >> 2) & 0x03) + 1,
