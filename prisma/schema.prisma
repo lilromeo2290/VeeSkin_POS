@@ -16,6 +16,32 @@ datasource db {
 //   - MANAGER: products, orders, inventory, dashboard (no user management)
 //   - CASHIER: POS terminal + own order history only
 
+// ─── Company Info (editable business information shown on receipts) ──────────
+// A single row (id = "default") stores the business information.
+// The admin edits this via the Settings page; changes appear on all new receipts.
+
+model CompanyInfo {
+  id              String   @id @default("default")
+  name            String   @default("VeeSkin Essentials")
+  tagline         String   @default("Skincare & Perfume Boutique")
+  address         String   @default("Osu, Oxford Street, Accra, Ghana")
+  phone           String   @default("+233 24 123 4567")
+  whatsapp        String   @default("+233 24 123 4567")
+  email           String   @default("hello@veeskin.com")
+  website         String?
+  tin             String?  // Tax Identification Number
+  logoUrl         String?  // URL to logo image (shown on receipt header)
+  footerMessage   String   @default("Thank you for shopping with us!")
+  refundPolicy    String   @default("Goods sold are not returnable.")
+  // Tax rates (Ghana defaults — editable)
+  nhilRate        Float    @default(0.025)  // 2.5%
+  getfundRate     Float    @default(0.025)  // 2.5%
+  vatRate         Float    @default(0.10)   // 10%
+  // Metadata
+  updatedAt       DateTime @updatedAt
+  updatedById     String?
+}
+
 model User {
   id              String    @id @default(cuid())
   email           String    @unique

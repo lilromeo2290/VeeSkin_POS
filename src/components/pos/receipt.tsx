@@ -1,13 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Barcode } from '@/components/pos/barcode'
 import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
-import { COMPANY_CONFIG } from '@/lib/company-config'
+import { COMPANY_CONFIG, fetchCompanyInfo, type CompanyInfo } from '@/lib/company-config'
 
-/**
- * The shape of order data needed to render a receipt.
- * This matches the Order model fields returned by the orders API.
- */
 export interface ReceiptOrder {
   orderNumber: string
   paymentMethod: string
@@ -36,32 +33,21 @@ export interface ReceiptOrder {
 
 interface ReceiptProps {
   order: ReceiptOrder
-  /** Show the "Verify at" URL hint below the barcode (default true) */
   showVerifyHint?: boolean
   className?: string
 }
 
 /**
- * Shared Receipt component — formatted as a THERMAL PRINTER receipt.
- *
- * Design characteristics of a thermal receipt:
- *   - 80mm width (standard thermal paper roll)
- *   - Monospace font (matches thermal printer output)
- *   - No colored backgrounds, no rounded borders, no shadows
- *   - Tight line spacing to save paper
- *   - Dashed separators (cut lines) between sections
- *   - Center-aligned header and footer
- *   - Left-aligned items, right-aligned amounts
- *   - Single accent color (rose gold) only for the grand total
- *
- * Used in:
- *   - POS terminal dialog (after checkout)
- *   - Orders view (order detail dialog)
- *   - Printable via the hidden-iframe print function (src/lib/print-receipt.ts)
- *
- * The system keeps a copy of every receipt as an Order record in the database.
+ * Shared Receipt component — thermal printer format.
+ * Fetches the live company info from the database (editable via Settings).
  */
 export function Receipt({ order, showVerifyHint = true, className }: ReceiptProps) {
+  const [company, setCompany] = useState<CompanyInfo>(COMPANY_CONFIG)
+
+  useEffect(() => {
+    fetchCompanyInfo().then(setCompany)
+  }, [])
+
   const paymentLabel =
     order.paymentMethod === 'CASH' ? 'CASH' :
     order.paymentMethod === 'MOMO' ? 'MOBILE MONEY' :
@@ -80,24 +66,30 @@ export function Receipt({ order, showVerifyHint = true, className }: ReceiptProp
         lineHeight: '1.4',
       }}
     >
-      {/* ─── Store header (centered, bold) ─── */}
+      {/* ─── Store header ─── */}
       <div className="text-center" style={{ marginBottom: '4px' }}>
+        {company.logoUrl && (
+          <div style={{ marginBottom: '4px' }}>
+            <img src={company.logoUrl} alt="logo" style={{ maxHeight: '50px', maxWidth: '100%' }} />
+          </div>
+        )}
         <div style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '0.5px' }}>
-          {COMPANY_CONFIG.name.toUpperCase()}
+          {company.name.toUpperCase()}
         </div>
-        <div style={{ fontSize: '10px', color: '#555' }}>{COMPANY_CONFIG.tagline}</div>
+        {company.tagline && (
+          <div style={{ fontSize: '10px', color: '#555' }}>{company.tagline}</div>
+        )}
         <div style={{ fontSize: '10px', color: '#555', whiteSpace: 'pre-line' }}>
-          {COMPANY_CONFIG.location}
+          {company.address}
         </div>
         <div style={{ fontSize: '10px', color: '#555' }}>
-          Tel: {COMPANY_CONFIG.phone}
+          Tel: {company.phone}
         </div>
-        {COMPANY_CONFIG.tin && (
-          <div style={{ fontSize: '10px', color: '#555' }}>TIN: {COMPANY_CONFIG.tin}</div>
+        {company.tin && (
+          <div style={{ fontSize: '10px', color: '#555' }}>TIN: {company.tin}</div>
         )}
       </div>
 
-      {/* Cut line */}
       <DashedLine />
 
       {/* ─── Receipt meta ─── */}
@@ -142,12 +134,12 @@ export function Receipt({ order, showVerifyHint = true, className }: ReceiptProp
             <Row label="Taxable Amt:" value={formatCurrency(order.taxableAmount)} small />
           </>
         )}
-        <Row label="NHIL (2.5%):" value={formatCurrency(order.nhil)} small />
-        <Row label="GETFund (2.5%):" value={formatCurrency(order.getfund)} small />
-        <Row label="VAT (10%):" value={formatCurrency(order.vat)} small />
+        <Row label={`NHIL (${(company.nhilRate * 100).toFixed(1)}%):`} value={formatCurrency(order.nhil)} small />
+        <Row label={`GETFund (${(company.getfundRate * 100).toFixed(1)}%):`} value={formatCurrency(order.getfund)} small />
+        <Row label={`VAT (${(company.vatRate * 100).toFixed(1)}%):`} value={formatCurrency(order.vat)} small />
       </div>
 
-      {/* Grand total — emphasized */}
+      {/* Grand total */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -195,18 +187,15 @@ export function Receipt({ order, showVerifyHint = true, className }: ReceiptProp
 
       {/* ─── Footer ─── */}
       <div className="text-center" style={{ fontSize: '9px', color: '#666', padding: '2px 0' }}>
-        <div style={{ fontWeight: 600 }}>THANK YOU!</div>
-        <div>Goods sold are not returnable.</div>
+        <div style={{ fontWeight: 600 }}>{company.footerMessage.toUpperCase()}</div>
+        <div>{company.refundPolicy}</div>
         <div>Please keep your receipt.</div>
       </div>
 
-      {/* Final cut line */}
       <DashedLine />
     </div>
   )
 }
-
-// ─── Helper sub-components ───────────────────────────────────────────────────
 
 function Row({ label, value, bold, small }: { label: string; value: string; bold?: boolean; small?: boolean }) {
   return (
@@ -215,7 +204,6 @@ function Row({ label, value, bold, small }: { label: string; value: string; bold
       justifyContent: 'space-between',
       fontSize: small ? '9px' : '10px',
       fontWeight: bold ? 700 : 400,
-      padding: '0',
       color: small ? '#666' : '#000',
     }}>
       <span>{label}</span>
@@ -225,11 +213,5 @@ function Row({ label, value, bold, small }: { label: string; value: string; bold
 }
 
 function DashedLine() {
-  return (
-    <div style={{
-      borderTop: '1px dashed #999',
-      margin: '3px 0',
-      height: 0,
-    }} />
-  )
+  return <div style={{ borderTop: '1px dashed #999', margin: '3px 0', height: 0 }} />
 }

@@ -1,21 +1,14 @@
-import { COMPANY_CONFIG } from '@/lib/company-config'
+import { COMPANY_CONFIG, getCompanyInfo, type CompanyInfo } from '@/lib/company-config'
 import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
 import type { ReceiptOrder } from '@/components/pos/receipt'
 
 /**
  * Generate a self-contained HTML document for the receipt in THERMAL PRINTER format.
- *
- * Thermal receipt characteristics:
- *   - 80mm width (standard thermal paper roll)
- *   - Monospace font
- *   - No colored backgrounds, no rounded borders, no shadows
- *   - Tight line spacing to save paper
- *   - Dashed separators (cut lines)
- *   - Center-aligned header/footer, right-aligned amounts
- *
- * Used by printReceipt() to populate a hidden iframe for printing.
+ * Fetches the live company info from the database (editable via Settings).
  */
-export function generateReceiptHtml(order: ReceiptOrder): string {
+export async function generateReceiptHtml(order: ReceiptOrder): Promise<string> {
+  const company = await getCompanyInfo()
+
   const paymentLabel =
     order.paymentMethod === 'CASH' ? 'CASH' :
     order.paymentMethod === 'MOMO' ? 'MOBILE MONEY' :
@@ -135,11 +128,12 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
   <div class="receipt">
     <!-- Store header -->
     <div class="header">
-      <div class="name">${escapeHtml(COMPANY_CONFIG.name.toUpperCase())}</div>
-      <div class="tagline">${escapeHtml(COMPANY_CONFIG.tagline)}</div>
-      <div class="location">${escapeHtml(COMPANY_CONFIG.location)}</div>
-      <div class="contact">Tel: ${escapeHtml(COMPANY_CONFIG.phone)}</div>
-      ${COMPANY_CONFIG.tin ? `<div class="tin">TIN: ${escapeHtml(COMPANY_CONFIG.tin)}</div>` : ''}
+      ${company.logoUrl ? `<div style="margin-bottom: 4px;"><img src="${escapeHtml(company.logoUrl)}" alt="logo" style="max-height: 50px; max-width: 100%;"/></div>` : ''}
+      <div class="name">${escapeHtml(company.name.toUpperCase())}</div>
+      <div class="tagline">${escapeHtml(company.tagline)}</div>
+      <div class="location">${escapeHtml(company.address)}</div>
+      <div class="contact">Tel: ${escapeHtml(company.phone)}</div>
+      ${company.tin ? `<div class="tin">TIN: ${escapeHtml(company.tin)}</div>` : ''}
     </div>
 
     <div class="cut"></div>
@@ -179,9 +173,9 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
       <div class="row"><span>Discount:</span><span>${formatCurrencyNegative(order.discount)}</span></div>
       <div class="row small"><span>Taxable Amt:</span><span>${formatCurrency(order.taxableAmount)}</span></div>
     ` : ''}
-    <div class="row small"><span>NHIL (2.5%):</span><span>${formatCurrency(order.nhil)}</span></div>
-    <div class="row small"><span>GETFund (2.5%):</span><span>${formatCurrency(order.getfund)}</span></div>
-    <div class="row small"><span>VAT (10%):</span><span>${formatCurrency(order.vat)}</span></div>
+    <div class="row small"><span>NHIL (${(company.nhilRate * 100).toFixed(1)}%):</span><span>${formatCurrency(order.nhil)}</span></div>
+    <div class="row small"><span>GETFund (${(company.getfundRate * 100).toFixed(1)}%):</span><span>${formatCurrency(order.getfund)}</span></div>
+    <div class="row small"><span>VAT (${(company.vatRate * 100).toFixed(1)}%):</span><span>${formatCurrency(order.vat)}</span></div>
 
     <!-- Grand total -->
     <div class="grand">
@@ -209,8 +203,8 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
 
     <!-- Footer -->
     <div class="footer">
-      <div class="thanks">THANK YOU!</div>
-      <div>Goods sold are not returnable.</div>
+      <div class="thanks">${escapeHtml(company.footerMessage.toUpperCase())}</div>
+      <div>${escapeHtml(company.refundPolicy)}</div>
       <div>Please keep your receipt.</div>
     </div>
 
@@ -232,8 +226,8 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
  *   - Printing an iframe's contentWindow triggers the browser's native print
  *     dialog with ONLY the iframe's content (the receipt), not the main page.
  */
-export function printReceipt(order: ReceiptOrder): void {
-  const html = generateReceiptHtml(order)
+export async function printReceipt(order: ReceiptOrder): Promise<void> {
+  const html = await generateReceiptHtml(order)
 
   // Create a hidden iframe
   const iframe = document.createElement('iframe')

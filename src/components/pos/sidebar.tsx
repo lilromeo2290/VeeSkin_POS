@@ -2,10 +2,10 @@
 
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { ShoppingCart, LayoutDashboard, Package, ReceiptText, Boxes, Users as UsersIcon, Crown, Shield, UserCog, LogOut } from 'lucide-react'
+import { ShoppingCart, LayoutDashboard, Package, ReceiptText, Boxes, Users as UsersIcon, Crown, Shield, UserCog, LogOut, Settings } from 'lucide-react'
 import { hasEffectivePermission, type Role, type SessionUser } from '@/lib/auth-types'
 
-export type ViewType = 'dashboard' | 'pos' | 'products' | 'orders' | 'inventory' | 'users'
+export type ViewType = 'dashboard' | 'pos' | 'products' | 'orders' | 'inventory' | 'users' | 'settings'
 
 interface SidebarProps {
   currentView: ViewType
@@ -15,13 +15,14 @@ interface SidebarProps {
   onLogout: () => void
 }
 
-const ALL_NAV_ITEMS: { id: ViewType; label: string; icon: React.ElementType; permission: 'viewDashboard' | 'viewPOS' | 'viewProducts' | 'viewOrders' | 'viewInventory' | 'viewUsers' }[] = [
+const ALL_NAV_ITEMS: { id: ViewType; label: string; icon: React.ElementType; permission: 'viewDashboard' | 'viewPOS' | 'viewProducts' | 'viewOrders' | 'viewInventory' | 'viewUsers' | 'viewSettings' }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'viewDashboard' },
   { id: 'pos', label: 'New Sale', icon: ShoppingCart, permission: 'viewPOS' },
   { id: 'products', label: 'Products', icon: Package, permission: 'viewProducts' },
   { id: 'orders', label: 'Orders', icon: ReceiptText, permission: 'viewOrders' },
   { id: 'inventory', label: 'Inventory', icon: Boxes, permission: 'viewInventory' },
   { id: 'users', label: 'Users', icon: UsersIcon, permission: 'viewUsers' },
+  { id: 'settings', label: 'Settings', icon: Settings, permission: 'viewSettings' },
 ]
 
 const ROLE_BADGE: Record<Role, { label: string; color: string; icon: React.ElementType }> = {

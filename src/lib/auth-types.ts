@@ -42,6 +42,7 @@ export const PERMISSIONS = {
   viewOrders: ['ADMIN', 'MANAGER', 'CASHIER'] as Role[],
   viewInventory: ['ADMIN', 'MANAGER'] as Role[],
   viewUsers: ['ADMIN'] as Role[],
+  viewSettings: ['ADMIN'] as Role[],
 
   // Product operations
   productRead: ['ADMIN', 'MANAGER', 'CASHIER'] as Role[],
@@ -84,6 +85,7 @@ export const PERMISSION_CATALOG: PermissionMeta[] = [
   { key: 'viewOrders', label: 'Orders', description: 'View order history', group: 'Views' },
   { key: 'viewInventory', label: 'Inventory', description: 'View inventory management', group: 'Views' },
   { key: 'viewUsers', label: 'User Management', description: 'View & manage staff accounts', group: 'Views' },
+  { key: 'viewSettings', label: 'Settings', description: 'Edit business information & tax rates', group: 'Views' },
   // Products
   { key: 'productRead', label: 'Read Products', description: 'Load product list (required for POS)', group: 'Products' },
   { key: 'productCreate', label: 'Create Products', description: 'Add new products', group: 'Products' },
@@ -149,6 +151,7 @@ export function canAccessView(role: Role, view: string, overrides?: Partial<Reco
     orders: 'viewOrders',
     inventory: 'viewInventory',
     users: 'viewUsers',
+    settings: 'viewSettings',
   }
   const perm = viewMap[view]
   if (!perm) return false

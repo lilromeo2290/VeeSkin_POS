@@ -9,6 +9,7 @@ import { ProductsManager } from '@/components/pos/products'
 import { OrdersView } from '@/components/pos/orders'
 import { InventoryView } from '@/components/pos/inventory'
 import { UsersManager } from '@/components/pos/users'
+import { SettingsView } from '@/components/pos/settings'
 import { AuthGate } from '@/components/pos/auth-gate'
 import { useCartStore } from '@/lib/cart-store'
 import { Button } from '@/components/ui/button'
@@ -258,6 +259,7 @@ export default function Home() {
           {effectiveView === 'orders' && <OrdersView />}
           {effectiveView === 'inventory' && <InventoryView />}
           {effectiveView === 'users' && user.role === 'ADMIN' && <UsersManager currentUser={user} />}
+          {effectiveView === 'settings' && user.role === 'ADMIN' && <SettingsView />}
         </div>
       </main>
     </div>

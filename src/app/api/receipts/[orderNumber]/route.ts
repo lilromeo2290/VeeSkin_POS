@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { COMPANY_CONFIG } from '@/lib/company-config'
+import { getCompanyInfo } from '@/lib/company-config'
 
 /**
  * GET /api/receipts/[orderNumber]
@@ -42,8 +42,10 @@ export async function GET(
       )
     }
 
+    const company = await getCompanyInfo()
+
     const receiptData = {
-      company: COMPANY_CONFIG,
+      company,
       receipt: {
         receiptNumber: order.orderNumber,
         date: order.createdAt.toISOString(),
@@ -95,7 +97,7 @@ export async function GET(
  * This is what a customer sees when they scan the barcode with their phone.
  */
 function renderHtmlReceipt(data: {
-  company: typeof COMPANY_CONFIG
+  company: Awaited<ReturnType<typeof getCompanyInfo>>
   receipt: {
     receiptNumber: string
     dateFormatted: string
@@ -185,7 +187,7 @@ function renderHtmlReceipt(data: {
     <div class="header">
       <h1>${company.name}</h1>
       <div class="tagline">${company.tagline}</div>
-      <div class="location">${company.location}</div>
+      <div class="location">${company.address}</div>
       <div class="contact">Tel/WhatsApp: ${company.phone}</div>
     </div>
     <div class="divider"></div>
@@ -238,8 +240,8 @@ function renderHtmlReceipt(data: {
       <div style="font-size:9px;color:#999;margin-top:4px;">${barcode}</div>
     </div>
     <div class="footer">
-      Thank you for shopping with ${company.name}!<br>
-      Goods sold are not returnable. Please keep your receipt.
+      ${company.footerMessage}<br>
+      ${company.refundPolicy}
     </div>
   </div>
 </body>
