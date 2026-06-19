@@ -37,23 +37,32 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
       font-family: 'Courier New', 'Monaco', 'Liberation Mono', monospace;
       background: white;
       color: #000;
-      width: 80mm;
-      margin: 0 auto;
+      width: 100%;
+      margin: 0;
+      padding: 0;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .receipt { padding: 3mm 2mm; font-size: 11px; line-height: 1.4; }
+    /* The receipt container — constrained to 80mm (thermal paper width) */
+    .receipt {
+      width: 80mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 4mm 3mm;
+      font-size: 11px;
+      line-height: 1.45;
+    }
 
     /* Header */
-    .header { text-align: center; margin-bottom: 2px; }
-    .header .name { font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }
+    .header { text-align: center; margin-bottom: 3px; }
+    .header .name { font-size: 16px; font-weight: bold; letter-spacing: 0.5px; }
     .header .tagline { font-size: 10px; color: #555; }
     .header .location { font-size: 10px; color: #555; white-space: pre-line; }
     .header .contact { font-size: 10px; color: #555; }
     .header .tin { font-size: 10px; color: #555; }
 
-    /* Cut lines */
-    .cut { border-top: 1px dashed #999; margin: 3px 0; height: 0; }
+    /* Cut lines (dashed = where thermal printer cuts) */
+    .cut { border-top: 1px dashed #999; margin: 4px 0; height: 0; }
 
     /* Meta rows */
     .row { display: flex; justify-content: space-between; font-size: 10px; padding: 0; }
@@ -69,13 +78,13 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
 
     /* Items */
     .item-row { display: flex; font-size: 10px; padding: 1px 0; align-items: flex-start; }
-    .item-row .name { flex: 1; padding-right: 4px; }
+    .item-row .name { flex: 1; padding-right: 4px; word-break: break-word; }
     .item-row .qty { width: 28px; text-align: center; }
     .item-row .price { width: 55px; text-align: right; }
     .item-row .total { width: 60px; text-align: right; font-weight: 600; }
 
-    /* Grand total */
-    .grand { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 2px 0; }
+    /* Grand total — emphasized with double borders */
+    .grand { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 3px 0; }
     .grand .value { color: #D4A574; }
 
     /* Barcode */
@@ -85,15 +94,44 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
 
     /* Footer */
     .footer { text-align: center; font-size: 9px; color: #666; padding: 2px 0; }
-    .footer .thanks { font-weight: 600; }
+    .footer .thanks { font-weight: 600; font-size: 10px; }
 
+    /* Print rules — center the 80mm receipt on whatever paper is used.
+       Browsers don't support @page size: 80mm via CSS (the printer driver
+       controls paper size), so we center the receipt on the page.
+       For true thermal printing, the user should select 80mm paper in the
+       print dialog, or use a thermal printer driver. */
     @media print {
-      html, body { width: auto; }
-      @page { margin: 0; size: 80mm auto; }
+      @page {
+        margin: 0;
+      }
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+      }
+      .receipt {
+        width: 80mm;
+        margin: 0;
+        padding: 5mm 4mm;
+      }
+      /* Hide the instruction overlay when printing */
+      .print-instructions {
+        display: none !important;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Print instructions (only visible on screen in the iframe, not when printing) -->
+  <div class="print-instructions" style="padding: 6mm; background: #fff3cd; border-bottom: 2px solid #ffc107; font-family: Arial, sans-serif; font-size: 12px; color: #856404; text-align: center;">
+    <strong>📋 For thermal receipt format:</strong> In the print dialog, go to
+    <strong>More settings → Paper size</strong> and select <strong>80mm</strong> or
+    a custom size. The receipt is formatted at 80mm width.
+  </div>
+
   <div class="receipt">
     <!-- Store header -->
     <div class="header">
@@ -164,7 +202,7 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
     <div class="barcode">
       <div class="hint">SCAN TO VERIFY</div>
       ${generateBarcodeSvg(order.orderNumber)}
-      ${showVerifyHint ? `<div class="verify">/api/receipts/${order.orderNumber}</div>` : ''}
+      <div class="verify">/api/receipts/${order.orderNumber}</div>
     </div>
 
     <div class="cut"></div>
@@ -181,8 +219,6 @@ export function generateReceiptHtml(order: ReceiptOrder): string {
 </body>
 </html>`
 }
-
-const showVerifyHint = true
 
 /**
  * Print a receipt using a hidden iframe.
