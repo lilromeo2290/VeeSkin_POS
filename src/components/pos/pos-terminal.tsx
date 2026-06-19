@@ -19,8 +19,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
 import { calculateChange } from '@/lib/tax'
-import { COMPANY_CONFIG } from '@/lib/company-config'
-import { Barcode } from '@/components/pos/barcode'
+import { Receipt } from '@/components/pos/receipt'
 
 interface Product {
   id: string
@@ -557,7 +556,7 @@ export function PosTerminal() {
         </DialogContent>
       </Dialog>
 
-      {/* Receipt dialog — full printable receipt with barcode */}
+      {/* Receipt dialog — uses the shared Receipt component (single source of truth) */}
       <Dialog open={!!lastOrder} onOpenChange={(open) => !open && setLastOrder(null)}>
         <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader className="sr-only">
@@ -573,145 +572,11 @@ export function PosTerminal() {
             <h2 className="text-lg font-bold">Payment Complete</h2>
           </div>
 
-          {/* Printable receipt */}
-          <div className="receipt-printable font-mono text-xs space-y-2 border border-dashed border-border rounded-lg p-4 bg-white">
-            {/* Company header */}
-            <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-wide" style={{ color: '#1a1410' }}>{COMPANY_CONFIG.name}</p>
-              <p className="text-[10px] text-muted-foreground">{COMPANY_CONFIG.tagline}</p>
-              <p className="text-[10px] text-muted-foreground whitespace-pre-line">{COMPANY_CONFIG.location}</p>
-              <p className="text-[10px] text-muted-foreground">Tel/WhatsApp: {COMPANY_CONFIG.phone}</p>
-            </div>
-
-            <div className="border-t border-dashed border-border" />
-
-            {/* Receipt meta */}
-            <div className="space-y-0.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Receipt No:</span>
-                <span className="font-bold">{lastOrder?.orderNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Date &amp; Time:</span>
-                <span>{lastOrder ? new Date(lastOrder.createdAt).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cashier:</span>
-                <span>{lastOrder?.cashierName || '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Customer:</span>
-                <span>{lastOrder?.customerName || 'Walk-in'}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-dashed border-border" />
-
-            {/* Items table */}
-            <table className="w-full">
-              <thead>
-                <tr className="text-[9px] uppercase text-muted-foreground border-b border-border">
-                  <th className="text-left pb-1">Item</th>
-                  <th className="text-center pb-1 w-8">Qty</th>
-                  <th className="text-right pb-1 w-16">Price</th>
-                  <th className="text-right pb-1 w-16">Amt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lastOrder?.items.map((item) => (
-                  <tr key={item.id} className="border-b border-dotted border-border/50">
-                    <td className="py-1 text-[10px]">{item.name}</td>
-                    <td className="text-center text-[10px]">{item.quantity}</td>
-                    <td className="text-right text-[10px]">{formatCurrency(item.price)}</td>
-                    <td className="text-right text-[10px] font-medium">{formatCurrency(item.subtotal)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Totals */}
-            <div className="space-y-0.5 pt-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Basic Amount:</span>
-                <span>{formatCurrency(lastOrder?.subtotal ?? 0)}</span>
-              </div>
-              {(lastOrder?.discount ?? 0) > 0 && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Discount:</span>
-                    <span>{formatCurrencyNegative(lastOrder?.discount ?? 0)}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Taxable Amount:</span>
-                    <span>{formatCurrency(lastOrder?.taxableAmount ?? 0)}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>NHIL @ 2.5%:</span>
-                <span>{formatCurrency(lastOrder?.nhil ?? 0)}</span>
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>GETFund @ 2.5%:</span>
-                <span>{formatCurrency(lastOrder?.getfund ?? 0)}</span>
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>VAT @ 10%:</span>
-                <span>{formatCurrency(lastOrder?.vat ?? 0)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-sm pt-1 border-t border-border">
-                <span>GRAND TOTAL:</span>
-                <span className="text-[#D4A574]">{formatCurrency(lastOrder?.total ?? 0)}</span>
-              </div>
-            </div>
-
-            {/* Payment info */}
-            <div className="border-t border-dashed border-border pt-1 space-y-0.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Payment:</span>
-                <span className="font-bold">
-                  {lastOrder?.paymentMethod === 'CASH' ? 'Cash' : lastOrder?.paymentMethod === 'MOMO' ? 'Mobile Money' : 'Bank Card'}
-                </span>
-              </div>
-              {lastOrder?.paymentMethod === 'CASH' && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount Tendered:</span>
-                    <span>{formatCurrency(lastOrder.amountTendered)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Change Given:</span>
-                    <span className="font-medium">{formatCurrency(lastOrder.changeGiven)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Barcode */}
-            <div className="border-t border-dashed border-border pt-2 flex flex-col items-center">
-              <p className="text-[9px] text-muted-foreground mb-1">Scan to verify receipt</p>
-              {lastOrder && (
-                <Barcode
-                  value={lastOrder.orderNumber}
-                  width={1.5}
-                  height={40}
-                  displayValue={true}
-                />
-              )}
-              <p className="text-[8px] text-muted-foreground mt-1">
-                Verify at: /api/receipts/{lastOrder?.orderNumber}
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="text-center text-[9px] text-muted-foreground pt-1">
-              <p>Thank you for shopping with {COMPANY_CONFIG.name}!</p>
-              <p>Goods sold are not returnable. Please keep your receipt.</p>
-            </div>
-          </div>
+          {/* The receipt — one component, kept by the system */}
+          {lastOrder && <Receipt order={lastOrder} />}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-2 no-print">
             <Button
               variant="outline"
               className="flex-1"

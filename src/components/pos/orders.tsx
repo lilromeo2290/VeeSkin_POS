@@ -5,16 +5,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Search, ReceiptText, Eye, Banknote, CreditCard, Smartphone, Loader2, Calendar } from 'lucide-react'
-import { formatCurrency, formatCurrencyNegative } from '@/lib/currency'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Search, ReceiptText, Eye, Banknote, CreditCard, Smartphone, Loader2, Calendar, Printer } from 'lucide-react'
+import { formatCurrency } from '@/lib/currency'
+import { Receipt } from '@/components/pos/receipt'
 
 interface OrderItem {
   id: string
@@ -33,7 +33,13 @@ interface Order {
   subtotal: number
   tax: number
   discount: number
+  taxableAmount: number
+  nhil: number
+  getfund: number
+  vat: number
   total: number
+  amountTendered: number
+  changeGiven: number
   itemsCount: number
   customerName: string | null
   cashierName: string | null
@@ -223,80 +229,34 @@ export function OrdersView() {
         </CardContent>
       </Card>
 
-      {/* Order details dialog */}
+      {/* Order detail dialog — shows the SAME receipt as the POS terminal */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>{selectedOrder?.orderNumber}</DialogDescription>
+        <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Receipt {selectedOrder?.orderNumber}</DialogTitle>
+            <DialogDescription>Order receipt</DialogDescription>
           </DialogHeader>
-          {selectedOrder && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="font-medium">
-                    {new Date(selectedOrder.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Cashier</p>
-                  <p className="font-medium">{selectedOrder.cashierName || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Customer</p>
-                  <p className="font-medium">{selectedOrder.customerName || 'Walk-in'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Payment</p>
-                  <p className="font-medium">{selectedOrder.paymentMethod}</p>
-                </div>
-              </div>
 
-              <Separator />
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Items</p>
-                <div className="space-y-1 max-h-60 overflow-y-auto">
-                  {selectedOrder.items?.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
-                      <div className="flex-1">
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.quantity} × {formatCurrency(item.price)}
-                        </p>
-                      </div>
-                      <p className="font-medium">{formatCurrency(item.subtotal)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatCurrency(selectedOrder.subtotal)}</span>
-                </div>
-                {selectedOrder.discount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span>{formatCurrencyNegative(selectedOrder.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tax</span>
-                  <span>{formatCurrency(selectedOrder.tax)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-base">
-                  <span>Total</span>
-                  <span className="text-[#D4A574]">{formatCurrency(selectedOrder.total)}</span>
-                </div>
-              </div>
-            </div>
+          {selectedOrder && selectedOrder.items && (
+            <Receipt order={{ ...selectedOrder, items: selectedOrder.items }} />
           )}
+
+          <div className="flex gap-2 pt-2 no-print">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => window.print()}
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print
+            </Button>
+            <Button
+              className="flex-1 brand-gradient hover:opacity-90 border-0"
+              onClick={() => setSelectedOrder(null)}
+            >
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
