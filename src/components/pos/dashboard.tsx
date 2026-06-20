@@ -52,7 +52,10 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/dashboard')
+        const res = await fetch('/api/dashboard', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        })
         if (!res.ok) throw new Error('Failed to load dashboard')
         const json = await res.json()
         setData(json)
@@ -63,6 +66,9 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
       }
     }
     load()
+    // Refresh every 15 seconds so deleted products disappear from issues
+    const interval = setInterval(load, 15000)
+    return () => clearInterval(interval)
   }, [])
 
   if (loading || !data) {

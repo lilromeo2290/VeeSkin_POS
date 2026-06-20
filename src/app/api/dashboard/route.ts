@@ -124,7 +124,7 @@ export async function GET() {
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       today: {
         revenue: Math.round(todayRevenue * 100) / 100,
         orders: todayOrders.length,
@@ -157,6 +157,8 @@ export async function GET() {
       expiredProducts: expiredProducts.map(p => ({ id: p.id, name: p.name, sku: p.sku, expiryDate: p.expiryDate })),
       expiringProducts: expiringProducts.map(p => ({ id: p.id, name: p.name, sku: p.sku, expiryDate: p.expiryDate })),
     })
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+    return response
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })

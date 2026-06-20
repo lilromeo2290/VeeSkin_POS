@@ -72,6 +72,10 @@ export function ExpiryAlertBanner() {
 
   useEffect(() => {
     loadData()
+    // Poll every 10 seconds so deleted products disappear from the alert
+    // even when deleted from the Products page (not from this dialog)
+    const interval = setInterval(loadData, 10000)
+    return () => clearInterval(interval)
   }, [loadData])
 
   // Refresh data when dialog opens
