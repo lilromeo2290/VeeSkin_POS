@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,7 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Plus, Trash2, Pencil, Tag, Loader2, Droplets, FlaskConical, FlaskRound, Sparkles, Flower2, Hand, Package, Palette
+  Plus, Trash2, Pencil, Tag, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,18 +23,6 @@ interface Category {
   color: string | null
   _count: { products: number }
 }
-
-const ICON_OPTIONS = [
-  { name: 'Droplets', icon: Droplets },
-  { name: 'FlaskConical', icon: FlaskConical },
-  { name: 'FlaskRound', icon: FlaskRound },
-  { name: 'Sparkles', icon: Sparkles },
-  { name: 'Flower2', icon: Flower2 },
-  { name: 'Hand', icon: Hand },
-  { name: 'Package', icon: Package },
-  { name: 'Tag', icon: Tag },
-  { name: 'Palette', icon: Palette },
-]
 
 const COLOR_OPTIONS = [
   { name: 'Rose Gold', value: '#D4A574' },
@@ -51,19 +39,12 @@ const COLOR_OPTIONS = [
   { name: 'Orange', value: '#ea580c' },
 ]
 
-function getIcon(name: string | null) {
-  if (!name) return Tag
-  const found = ICON_OPTIONS.find((o) => o.name === name)
-  return found ? found.icon : Tag
-}
-
 export function CategoriesManager() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState('Package')
   const [color, setColor] = useState('#D4A574')
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
@@ -89,7 +70,6 @@ export function CategoriesManager() {
   function openCreate() {
     setEditId(null)
     setName('')
-    setIcon('Package')
     setColor('#D4A574')
     setDialogOpen(true)
   }
@@ -97,7 +77,6 @@ export function CategoriesManager() {
   function openEdit(cat: Category) {
     setEditId(cat.id)
     setName(cat.name)
-    setIcon(cat.icon || 'Package')
     setColor(cat.color || '#D4A574')
     setDialogOpen(true)
   }
@@ -109,7 +88,7 @@ export function CategoriesManager() {
     }
     setSaving(true)
     try {
-      const payload = { name: name.trim(), icon, color }
+      const payload = { name: name.trim(), color }
       const url = editId ? `/api/categories/${editId}` : '/api/categories'
       const method = editId ? 'PUT' : 'POST'
       const res = await fetch(url, {
@@ -179,56 +158,49 @@ export function CategoriesManager() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Category</TableHead>
-                    <TableHead>Icon</TableHead>
                     <TableHead>Color</TableHead>
                     <TableHead className="text-center">Products</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {categories.map((cat) => {
-                    const Icon = getIcon(cat.icon)
-                    return (
-                      <TableRow key={cat.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: cat.color ? `${cat.color}20` : '#D4A57420' }}
-                            >
-                              <Icon className="w-4 h-4" style={{ color: cat.color || '#D4A574' }} />
-                            </div>
-                            <span className="font-medium text-sm">{cat.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{cat.icon || '—'}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full border border-border" style={{ backgroundColor: cat.color || '#ccc' }} />
-                            <span className="text-xs">{cat.color || '—'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline">{cat._count.products}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDeleteTarget(cat)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                  {categories.map((cat) => (
+                    <TableRow key={cat.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-4 h-4 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color || '#D4A574' }}
+                          />
+                          <span className="font-medium text-sm">{cat.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full border border-border" style={{ backgroundColor: cat.color || '#ccc' }} />
+                          <span className="text-xs">{cat.color || '—'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{cat._count.products}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeleteTarget(cat)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -256,27 +228,6 @@ export function CategoriesManager() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Icon</Label>
-              <div className="grid grid-cols-5 gap-2">
-                {ICON_OPTIONS.map((opt) => {
-                  const Icon = opt.icon
-                  const selected = icon === opt.name
-                  return (
-                    <button
-                      key={opt.name}
-                      type="button"
-                      onClick={() => setIcon(opt.name)}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all ${
-                        selected ? 'border-[#D4A574] bg-[#D4A574]/10' : 'border-border hover:border-[#D4A574]/50'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label>Color</Label>
               <div className="flex flex-wrap gap-2">
                 {COLOR_OPTIONS.map((c) => {
@@ -300,14 +251,9 @@ export function CategoriesManager() {
             <div className="rounded-lg border border-border p-3 flex items-center gap-3">
               <span className="text-xs text-muted-foreground">Preview:</span>
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${color}20` }}
-              >
-                {(() => {
-                  const Icon = getIcon(icon)
-                  return <Icon className="w-4 h-4" style={{ color }} />
-                })()}
-              </div>
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: color }}
+              />
               <span className="font-medium text-sm">{name || 'Category Name'}</span>
             </div>
           </div>

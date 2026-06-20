@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, X, Banknote, CreditCard, Smartphone,
-  Droplets, FlaskConical, FlaskRound, Sparkles, Flower2, Hand, Package, Loader2, CheckCircle2, Printer
+  Package, Loader2, CheckCircle2, Printer
 } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { toast } from 'sonner'
@@ -69,15 +69,6 @@ interface CompletedOrder {
   cashierName: string | null
   createdAt: string
   items: CompletedOrderItem[]
-}
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  Droplets, FlaskConical, FlaskRound, Sparkles, Flower2, Hand, Package,
-}
-
-function getIcon(name: string | null) {
-  if (!name) return Package
-  return ICON_MAP[name] || Package
 }
 
 export function PosTerminal() {
@@ -194,7 +185,6 @@ export function PosTerminal() {
               All Items
             </button>
             {categories.map((cat) => {
-              const Icon = getIcon(cat.icon)
               const active = selectedCategory === cat.id
               return (
                 <button
@@ -208,7 +198,10 @@ export function PosTerminal() {
                   )}
                   style={active && cat.color ? { backgroundColor: cat.color } : undefined}
                 >
-                  <Icon className="w-4 h-4" />
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: active ? 'white' : (cat.color || '#D4A574') }}
+                  />
                   {cat.name}
                 </button>
               )
@@ -260,14 +253,9 @@ export function PosTerminal() {
                     )}
                     <div className="flex flex-col h-full min-h-[100px]">
                       <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center mb-2"
-                        style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#D4A57420' }}
-                      >
-                        {(() => {
-                          const Icon = getIcon(product.category?.icon)
-                          return <Icon className="w-4 h-4" style={{ color: product.category?.color || '#D4A574' }} />
-                        })()}
-                      </div>
+                        className="w-3 h-3 rounded-full mb-2 shrink-0"
+                        style={{ backgroundColor: product.category?.color || '#D4A574' }}
+                      />
                       <p className="text-sm font-medium leading-tight line-clamp-2 flex-1">{product.name}</p>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-base font-bold text-[#D4A574]">{formatCurrency(product.price)}</span>
