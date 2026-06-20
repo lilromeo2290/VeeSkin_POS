@@ -58,7 +58,10 @@ export function ExpiryAlertBanner() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch('/api/expiring')
+      const res = await fetch('/api/expiring', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      })
       if (!res.ok) return
       const json = await res.json()
       setData(json)
@@ -107,6 +110,8 @@ export function ExpiryAlertBanner() {
       if (!res.ok) throw new Error('Delete failed')
       toast.success(`Deleted: ${deleteTarget.name}`)
       setDeleteTarget(null)
+      // Small delay to let the DB commit, then force-reload
+      await new Promise(r => setTimeout(r, 300))
       await loadData()
     } catch {
       toast.error('Failed to delete product')
@@ -128,7 +133,10 @@ export function ExpiryAlertBanner() {
     setActionLoading(true)
     try {
       // Fetch the full product, update just the expiry date
-      const getRes = await fetch(`/api/products/${replaceTarget.id}`)
+      const getRes = await fetch(`/api/products/${replaceTarget.id}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      })
       if (!getRes.ok) throw new Error('Failed to fetch product')
       const product = await getRes.json()
 
@@ -147,6 +155,8 @@ export function ExpiryAlertBanner() {
 
       toast.success(`${replaceTarget.name} expiry updated to ${new Date(newExpiryDate).toLocaleDateString('en-GB')}`)
       setReplaceTarget(null)
+      // Small delay to let the DB commit, then force-reload
+      await new Promise(r => setTimeout(r, 300))
       await loadData()
     } catch (e) {
       toast.error('Failed to update expiry date')

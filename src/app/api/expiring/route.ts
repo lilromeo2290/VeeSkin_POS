@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       }))
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       expired: withDays(expired),
       critical: withDays(critical),
       soon: withDays(soon),
@@ -88,6 +88,9 @@ export async function GET(request: NextRequest) {
         total: expired.length + critical.length + soon.length + warning.length,
       },
     })
+    // Prevent browser caching so deleted/replaced products disappear immediately
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+    return response
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })
