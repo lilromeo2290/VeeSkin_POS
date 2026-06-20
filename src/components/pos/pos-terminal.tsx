@@ -138,6 +138,8 @@ export function PosTerminal() {
       const order = await res.json()
       setLastOrder(order)
       cart.clear()
+      cart.setCustomerName('')
+      cart.setCustomerPhone('')
       setCheckoutOpen(false)
       setAmountTendered('')
       toast.success(`Order ${order.orderNumber} completed!`)
