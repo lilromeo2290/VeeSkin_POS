@@ -1,17 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Label } from '@/components/ui/label'
-import { Search, Boxes, AlertTriangle, PackageX, TrendingDown, Loader2, Save, Package } from 'lucide-react'
+import { Search, Boxes, AlertTriangle, PackageX, TrendingDown, Loader2, Save, Package, RefreshCw, CalendarClock } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/currency'
 
@@ -23,7 +23,13 @@ interface Product {
   price: number
   cost: number
   stock: number
+  openingStock: number
   lowStock: number
+  reorderPoint: number
+  maxStock: number
+  batchNumber: string | null
+  manufacturingDate: string | null
+  expiryDate: string | null
   isActive: boolean
   categoryId: string | null
   category: { id: string; name: string; color: string | null; icon: string | null } | null
@@ -56,6 +62,8 @@ export function InventoryView() {
     total: products.length,
     lowStock: products.filter((p) => p.stock > 0 && p.stock <= p.lowStock).length,
     outOfStock: products.filter((p) => p.stock === 0).length,
+    needsReorder: products.filter((p) => p.stock <= p.reorderPoint).length,
+    expired: products.filter((p) => p.expiryDate && new Date(p.expiryDate) < new Date()).length,
     inventoryValue: products.reduce((s, p) => s + p.cost * p.stock, 0),
   }
 
@@ -77,7 +85,13 @@ export function InventoryView() {
           price: editingStock.price,
           cost: editingStock.cost,
           stock: parseInt(newStock) || 0,
+          openingStock: editingStock.openingStock,
           lowStock: editingStock.lowStock,
+          reorderPoint: editingStock.reorderPoint,
+          maxStock: editingStock.maxStock,
+          batchNumber: editingStock.batchNumber,
+          manufacturingDate: editingStock.manufacturingDate,
+          expiryDate: editingStock.expiryDate,
           categoryId: editingStock.categoryId,
           isActive: editingStock.isActive,
         }),
@@ -104,7 +118,13 @@ export function InventoryView() {
           price: product.price,
           cost: product.cost,
           stock: newQty,
+          openingStock: product.openingStock,
           lowStock: product.lowStock,
+          reorderPoint: product.reorderPoint,
+          maxStock: product.maxStock,
+          batchNumber: product.batchNumber,
+          manufacturingDate: product.manufacturingDate,
+          expiryDate: product.expiryDate,
           categoryId: product.categoryId,
           isActive: product.isActive,
         }),
@@ -116,8 +136,39 @@ export function InventoryView() {
     }
   }
 
+  function getStockStatus(product: Product): { label: string; variant: 'destructive' | 'secondary' | 'outline' | 'default'; className?: string } {
+    if (product.stock === 0) return { label: 'Out of Stock', variant: 'destructive' }
+    if (product.stock <= p_reorder(product)) return { label: 'Reorder', variant: 'secondary', className: 'bg-blue-50 text-blue-700 border-blue-200' }
+    if (product.stock <= p_low(product)) return { label: 'Low Stock', variant: 'secondary', className: 'bg-amber-50 text-amber-700 border-amber-200' }
+    if (product.stock >= p_max(product)) return { label: 'Overstock', variant: 'secondary', className: 'bg-purple-50 text-purple-700 border-purple-200' }
+    return { label: 'In Stock', variant: 'outline', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+  }
+
+  // Helper functions to safely access fields with fallbacks for older data
+  function p_low(p: Product) { return p.lowStock || 10 }
+  function p_reorder(p: Product) { return p.reorderPoint || 20 }
+  function p_max(p: Product) { return p.maxStock || 100 }
+  function p_open(p: Product) { return p.openingStock || 0 }
+
+  function isExpired(p: Product): boolean {
+    if (!p.expiryDate) return false
+    return new Date(p.expiryDate) < new Date()
+  }
+
+  function isExpiringSoon(p: Product): boolean {
+    if (!p.expiryDate) return false
+    const days = Math.floor((new Date(p.expiryDate).getTime() - Date.now()) / 86400000)
+    return days >= 0 && days <= 30
+  }
+
+  function formatDate(d: string | null): string {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString('en-GB')
+  }
+
   return (
     <div className="space-y-4">
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
@@ -136,11 +187,11 @@ export function InventoryView() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Low Stock</p>
-                <p className="text-2xl font-bold mt-1 text-amber-600">{stats.lowStock}</p>
+                <p className="text-xs text-muted-foreground">Need Reorder</p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">{stats.needsReorder}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                <RefreshCw className="w-5 h-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -152,7 +203,7 @@ export function InventoryView() {
                 <p className="text-xs text-muted-foreground">Out of Stock</p>
                 <p className="text-2xl font-bold mt-1 text-red-600">{stats.outOfStock}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
                 <PackageX className="w-5 h-5 text-red-600" />
               </div>
             </div>
@@ -165,13 +216,25 @@ export function InventoryView() {
                 <p className="text-xs text-muted-foreground">Inventory Value</p>
                 <p className="text-2xl font-bold mt-1">{formatCurrency(stats.inventoryValue)}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-950 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center">
                 <TrendingDown className="w-5 h-5 text-violet-600" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Expiry alert banner */}
+      {stats.expired > 0 && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+          <CardContent className="p-3 flex items-center gap-2">
+            <CalendarClock className="w-5 h-5 text-red-600 shrink-0" />
+            <p className="text-sm text-red-700 dark:text-red-400">
+              <strong>{stats.expired}</strong> product(s) have expired. Please review and remove them from inventory.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-4">
@@ -215,60 +278,63 @@ export function InventoryView() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                    <TableHead className="text-center">In Stock</TableHead>
-                    <TableHead className="text-center">Threshold</TableHead>
-                    <TableHead className="text-right">Stock Value</TableHead>
+                    <TableHead className="text-center">Opening</TableHead>
+                    <TableHead className="text-center">Current</TableHead>
+                    <TableHead className="text-center">Min</TableHead>
+                    <TableHead className="text-center">Reorder</TableHead>
+                    <TableHead className="text-center">Max</TableHead>
+                    <TableHead>Batch #</TableHead>
+                    <TableHead>Mfg Date</TableHead>
+                    <TableHead>Expiry</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Adjust</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => {
-                    const stockValue = product.cost * product.stock
-                    const isOut = product.stock === 0
-                    const isLow = product.stock > 0 && product.stock <= product.lowStock
+                    const status = getStockStatus(product)
+                    const expired = isExpired(product)
+                    const expiringSoon = isExpiringSoon(product)
                     return (
-                      <TableRow key={product.id}>
+                      <TableRow key={product.id} className={expired ? 'bg-red-50/50 dark:bg-red-950/20' : ''}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div
-                              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: product.category?.color ? `${product.category.color}20` : '#D4A57420' }}
-                            >
-                              <Package className="w-4 h-4" style={{ color: product.category?.color || '#D4A574' }} />
+                              className="w-4 h-4 rounded-full shrink-0"
+                              style={{ backgroundColor: product.category?.color || '#D4A574' }}
+                            />
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm">{product.name}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
                             </div>
-                            <p className="font-medium text-sm">{product.name}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                        <TableCell>
-                          {product.category ? (
-                            <Badge variant="outline" style={{ color: product.category.color || undefined }}>
-                              {product.category.name}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(product.cost)}</TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">{p_open(product)}</TableCell>
                         <TableCell className="text-center">
-                          <span className={`text-lg font-bold ${isOut ? 'text-red-600' : isLow ? 'text-amber-600' : ''}`}>
+                          <span className={`text-lg font-bold ${product.stock === 0 ? 'text-red-600' : product.stock <= p_low(product) ? 'text-amber-600' : product.stock <= p_reorder(product) ? 'text-blue-600' : ''}`}>
                             {product.stock}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center text-muted-foreground">{product.lowStock}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(stockValue)}</TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">{p_low(product)}</TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">
+                          {p_reorder(product)}
+                        </TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">{p_max(product)}</TableCell>
+                        <TableCell className="text-xs font-mono">{product.batchNumber || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{formatDate(product.manufacturingDate)}</TableCell>
+                        <TableCell className="text-xs">
+                          {product.expiryDate ? (
+                            <span className={expired ? 'text-red-600 font-medium' : expiringSoon ? 'text-amber-600 font-medium' : 'text-muted-foreground'}>
+                              {formatDate(product.expiryDate)}
+                              {expired && ' (Expired)'}
+                              {expiringSoon && ' (Soon)'}
+                            </span>
+                          ) : '—'}
+                        </TableCell>
                         <TableCell>
-                          {isOut ? (
-                            <Badge variant="destructive">Out of Stock</Badge>
-                          ) : isLow ? (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">Low</Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-[#D4A574]/10 text-[#D4A574]">In Stock</Badge>
-                          )}
+                          <Badge variant={status.variant} className={status.className}>
+                            {status.label}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -314,11 +380,11 @@ export function InventoryView() {
           <AlertDialogHeader>
             <AlertDialogTitle>Adjust Stock Level</AlertDialogTitle>
             <AlertDialogDescription>
-              Update the stock count for <strong>{editingStock?.name}</strong>
+              Update the current quantity for <strong>{editingStock?.name}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="stock-input">New Stock Level</Label>
+            <Label htmlFor="stock-input">New Current Quantity</Label>
             <Input
               id="stock-input"
               type="number"
@@ -327,13 +393,15 @@ export function InventoryView() {
               onChange={(e) => setNewStock(e.target.value)}
               autoFocus
             />
-            <p className="text-xs text-muted-foreground">
-              Current: {editingStock?.stock} units • Low stock threshold: {editingStock?.lowStock}
-            </p>
+            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground mt-2">
+              <div>Opening: <strong className="text-foreground">{editingStock ? p_open(editingStock) : 0}</strong></div>
+              <div>Min: <strong className="text-foreground">{editingStock ? p_low(editingStock) : 10}</strong></div>
+              <div>Reorder: <strong className="text-foreground">{editingStock ? p_reorder(editingStock) : 20}</strong></div>
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={saveStock} className="brand-gradient hover:opacity-90 border-0">
+            <AlertDialogAction onClick={saveStock} className="bg-[#D4A574] hover:bg-[#D4A574]/90 text-white">
               <Save className="w-4 h-4 mr-2" />
               Save
             </AlertDialogAction>

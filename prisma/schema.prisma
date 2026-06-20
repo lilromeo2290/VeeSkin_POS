@@ -80,8 +80,16 @@ model Product {
   color       String?
   price       Float
   cost        Float       @default(0)
-  stock       Int         @default(0)
-  lowStock    Int         @default(10)
+  // ─── Inventory management fields ───
+  stock       Int         @default(0)  // Current Quantity (on hand)
+  openingStock Int        @default(0)  // Opening Stock (initial quantity at start of period)
+  lowStock    Int         @default(10) // Minimum Stock Level (alert threshold)
+  reorderPoint Int        @default(20) // Reorder Point (when to place a new order)
+  maxStock    Int         @default(100) // Maximum Stock Level (upper limit)
+  batchNumber String?
+  manufacturingDate DateTime?
+  expiryDate  DateTime?
+  // ─── End inventory fields ───
   barcode     String?
   image       String?
   isActive    Boolean     @default(true)

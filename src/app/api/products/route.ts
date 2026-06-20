@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       sku = await generateSku(body.name, body.brand, body.size, body.color)
     }
 
+    const stock = Number(body.stock) || 0
     const product = await db.product.create({
       data: {
         name: body.name,
@@ -68,8 +69,14 @@ export async function POST(request: NextRequest) {
         color: body.color?.trim() || null,
         price: Number(body.price),
         cost: Number(body.cost) || 0,
-        stock: Number(body.stock) || 0,
+        stock,
+        openingStock: Number(body.openingStock) || stock, // default to current stock
         lowStock: Number(body.lowStock) || 10,
+        reorderPoint: Number(body.reorderPoint) || 20,
+        maxStock: Number(body.maxStock) || 100,
+        batchNumber: body.batchNumber?.trim() || null,
+        manufacturingDate: body.manufacturingDate ? new Date(body.manufacturingDate) : null,
+        expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
         barcode: body.barcode || null,
         categoryId: body.categoryId || null,
         isActive: body.isActive !== false,

@@ -76,7 +76,30 @@ export async function POST() {
 
     for (const p of products) {
       const sku = await generateSku(p.name, p.brand, p.size, p.color)
-      await db.product.create({ data: { ...p, sku } })
+      // Generate inventory fields with sensible defaults
+      const stock = p.stock
+      const lowStock = Math.max(5, Math.floor(stock * 0.15)) // 15% of stock as min
+      const reorderPoint = Math.max(10, Math.floor(stock * 0.25)) // 25% as reorder
+      const maxStock = Math.max(50, stock * 2) // 2x stock as max
+
+      // Generate batch number and dates
+      const batchNumber = `BN-2026-${String(Math.floor(Math.random() * 999)).padStart(3, '0')}`
+      const mfgDate = new Date(Date.now() - Math.floor(Math.random() * 180) * 86400000) // 0-6 months ago
+      const expiryDate = new Date(Date.now() + (180 + Math.floor(Math.random() * 540)) * 86400000) // 6-24 months from now
+
+      await db.product.create({
+        data: {
+          ...p,
+          sku,
+          openingStock: stock,
+          lowStock,
+          reorderPoint,
+          maxStock,
+          batchNumber,
+          manufacturingDate: mfgDate,
+          expiryDate,
+        },
+      })
     }
 
     // Create some sample orders

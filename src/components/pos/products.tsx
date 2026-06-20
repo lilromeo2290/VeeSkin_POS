@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Search, Plus, Pencil, Trash2, Package, Loader2, DollarSign, Layers
+  Search, Plus, Pencil, Trash2, Package, Loader2, DollarSign, Layers, Boxes
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/currency'
@@ -32,7 +32,13 @@ interface Product {
   price: number
   cost: number
   stock: number
+  openingStock: number
   lowStock: number
+  reorderPoint: number
+  maxStock: number
+  batchNumber: string | null
+  manufacturingDate: string | null
+  expiryDate: string | null
   isActive: boolean
   categoryId: string | null
   category: { id: string; name: string; color: string | null; icon: string | null } | null
@@ -55,8 +61,15 @@ interface FormState {
   description: string
   price: string
   cost: string
+  // Inventory fields
   stock: string
+  openingStock: string
   lowStock: string
+  reorderPoint: string
+  maxStock: string
+  batchNumber: string
+  manufacturingDate: string
+  expiryDate: string
   categoryId: string
   isActive: boolean
 }
@@ -71,7 +84,13 @@ const EMPTY_FORM: FormState = {
   price: '',
   cost: '',
   stock: '',
+  openingStock: '',
   lowStock: '10',
+  reorderPoint: '20',
+  maxStock: '100',
+  batchNumber: '',
+  manufacturingDate: '',
+  expiryDate: '',
   categoryId: '',
   isActive: true,
 }
@@ -126,7 +145,13 @@ export function ProductsManager() {
       price: product.price.toString(),
       cost: product.cost.toString(),
       stock: product.stock.toString(),
+      openingStock: product.openingStock?.toString() || product.stock.toString(),
       lowStock: product.lowStock.toString(),
+      reorderPoint: product.reorderPoint?.toString() || '20',
+      maxStock: product.maxStock?.toString() || '100',
+      batchNumber: product.batchNumber || '',
+      manufacturingDate: product.manufacturingDate ? product.manufacturingDate.substring(0, 10) : '',
+      expiryDate: product.expiryDate ? product.expiryDate.substring(0, 10) : '',
       categoryId: product.categoryId || '',
       isActive: product.isActive,
     })
@@ -151,7 +176,13 @@ export function ProductsManager() {
         price: parseFloat(form.price),
         cost: parseFloat(form.cost) || 0,
         stock: parseInt(form.stock) || 0,
+        openingStock: parseInt(form.openingStock) || 0,
         lowStock: parseInt(form.lowStock) || 10,
+        reorderPoint: parseInt(form.reorderPoint) || 20,
+        maxStock: parseInt(form.maxStock) || 100,
+        batchNumber: form.batchNumber || null,
+        manufacturingDate: form.manufacturingDate || null,
+        expiryDate: form.expiryDate || null,
         categoryId: form.categoryId || null,
         isActive: form.isActive,
       }
@@ -464,28 +495,103 @@ export function ProductsManager() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="stock">Current Stock</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  min="0"
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lowStock">Low Stock Threshold</Label>
-                <Input
-                  id="lowStock"
-                  type="number"
-                  min="0"
-                  value={form.lowStock}
-                  onChange={(e) => setForm({ ...form, lowStock: e.target.value })}
-                  placeholder="10"
-                />
+            {/* ─── Inventory Management Section ─── */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <p className="text-sm font-semibold flex items-center gap-1.5">
+                <Boxes className="w-4 h-4 text-[#D4A574]" />
+                Inventory Management
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="openingStock" className="text-xs">Opening Stock</Label>
+                  <Input
+                    id="openingStock"
+                    type="number"
+                    min="0"
+                    value={form.openingStock}
+                    onChange={(e) => setForm({ ...form, openingStock: e.target.value })}
+                    placeholder="0"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="stock" className="text-xs">Current Quantity</Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    min="0"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    placeholder="0"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="lowStock" className="text-xs">Minimum Stock Level</Label>
+                  <Input
+                    id="lowStock"
+                    type="number"
+                    min="0"
+                    value={form.lowStock}
+                    onChange={(e) => setForm({ ...form, lowStock: e.target.value })}
+                    placeholder="10"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="reorderPoint" className="text-xs">Reorder Point</Label>
+                  <Input
+                    id="reorderPoint"
+                    type="number"
+                    min="0"
+                    value={form.reorderPoint}
+                    onChange={(e) => setForm({ ...form, reorderPoint: e.target.value })}
+                    placeholder="20"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="maxStock" className="text-xs">Maximum Stock Level</Label>
+                  <Input
+                    id="maxStock"
+                    type="number"
+                    min="0"
+                    value={form.maxStock}
+                    onChange={(e) => setForm({ ...form, maxStock: e.target.value })}
+                    placeholder="100"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="batchNumber" className="text-xs">Batch Number</Label>
+                  <Input
+                    id="batchNumber"
+                    value={form.batchNumber}
+                    onChange={(e) => setForm({ ...form, batchNumber: e.target.value })}
+                    placeholder="e.g. BN-2026-001"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="manufacturingDate" className="text-xs">Manufacturing Date</Label>
+                  <Input
+                    id="manufacturingDate"
+                    type="date"
+                    value={form.manufacturingDate}
+                    onChange={(e) => setForm({ ...form, manufacturingDate: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="expiryDate" className="text-xs">Expiry Date</Label>
+                  <Input
+                    id="expiryDate"
+                    type="date"
+                    value={form.expiryDate}
+                    onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
