@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword, requirePermission, AuthError } from '@/lib/auth'
 import { calculateTax } from '@/lib/tax'
+import { generateSku } from '@/lib/sku'
 
 export async function POST() {
   try {
@@ -28,52 +29,54 @@ export async function POST() {
     const [cleansers, serums, moisturizers, masks, perfumes, bodyCare] = categories
 
     // Create products — skincare & perfume boutique catalog
+    // SKU is auto-generated from name + brand + size + color (via generateSku utility)
     const products = [
       // Cleansers
-      { name: 'Rose Gel Cleanser', sku: 'CLS-001', price: 120, cost: 45, stock: 60, categoryId: cleansers.id, description: 'Gentle rose-infused gel cleanser' },
-      { name: 'Micellar Water', sku: 'CLS-002', price: 95, cost: 32, stock: 75, categoryId: cleansers.id, description: 'Soothing micellar cleansing water' },
-      { name: 'Foaming Milk Cleanser', sku: 'CLS-003', price: 110, cost: 38, stock: 50, categoryId: cleansers.id, description: 'Creamy milk-to-foam cleanser' },
-      { name: 'Exfoliating Polish', sku: 'CLS-004', price: 165, cost: 55, stock: 35, categoryId: cleansers.id, description: 'Weekly enzymatic exfoliator' },
-      { name: 'Cleansing Balm', sku: 'CLS-005', price: 180, cost: 60, stock: 30, categoryId: cleansers.id, description: 'Melting cleansing balm with botanical oils' },
-      { name: 'Eye Makeup Remover', sku: 'CLS-006', price: 75, cost: 25, stock: 80, categoryId: cleansers.id, description: 'Gentle dual-phase eye makeup remover' },
+      { name: 'Rose Gel Cleanser', brand: 'VeeSkin', size: '150ml', color: 'Pink', price: 120, cost: 45, stock: 60, categoryId: cleansers.id, description: 'Gentle rose-infused gel cleanser' },
+      { name: 'Micellar Water', brand: 'VeeSkin', size: '200ml', color: 'Clear', price: 95, cost: 32, stock: 75, categoryId: cleansers.id, description: 'Soothing micellar cleansing water' },
+      { name: 'Foaming Milk Cleanser', brand: 'VeeSkin', size: '150ml', color: 'White', price: 110, cost: 38, stock: 50, categoryId: cleansers.id, description: 'Creamy milk-to-foam cleanser' },
+      { name: 'Exfoliating Polish', brand: 'VeeSkin', size: '100ml', color: 'Brown', price: 165, cost: 55, stock: 35, categoryId: cleansers.id, description: 'Weekly enzymatic exfoliator' },
+      { name: 'Cleansing Balm', brand: 'VeeSkin', size: '100ml', color: 'Gold', price: 180, cost: 60, stock: 30, categoryId: cleansers.id, description: 'Melting cleansing balm with botanical oils' },
+      { name: 'Eye Makeup Remover', brand: 'VeeSkin', size: '100ml', color: 'Clear', price: 75, cost: 25, stock: 80, categoryId: cleansers.id, description: 'Gentle dual-phase eye makeup remover' },
       // Serums
-      { name: 'Vitamin C Brightening Serum', sku: 'SER-001', price: 320, cost: 90, stock: 40, categoryId: serums.id, description: '20% Vitamin C with ferulic acid' },
-      { name: 'Hyaluronic Hydration Serum', sku: 'SER-002', price: 250, cost: 70, stock: 55, categoryId: serums.id, description: 'Multi-weight hyaluronic acid serum' },
-      { name: 'Retinol Renewal Serum', sku: 'SER-003', price: 380, cost: 110, stock: 30, categoryId: serums.id, description: '0.5% encapsulated retinol' },
-      { name: 'Niacinamide Pore Serum', sku: 'SER-004', price: 195, cost: 58, stock: 45, categoryId: serums.id, description: '10% niacinamide + zinc' },
-      { name: 'Peptide Firming Serum', sku: 'SER-005', price: 450, cost: 140, stock: 22, categoryId: serums.id, description: 'Multi-peptide complex for firmness' },
-      { name: 'Rose Hip Facial Oil', sku: 'SER-006', price: 220, cost: 68, stock: 38, categoryId: serums.id, description: 'Cold-pressed rose hip seed oil' },
+      { name: 'Vitamin C Brightening Serum', brand: 'VeeSkin', size: '30ml', color: 'Orange', price: 320, cost: 90, stock: 40, categoryId: serums.id, description: '20% Vitamin C with ferulic acid' },
+      { name: 'Hyaluronic Hydration Serum', brand: 'VeeSkin', size: '30ml', color: 'Clear', price: 250, cost: 70, stock: 55, categoryId: serums.id, description: 'Multi-weight hyaluronic acid serum' },
+      { name: 'Retinol Renewal Serum', brand: 'VeeSkin', size: '30ml', color: 'Yellow', price: 380, cost: 110, stock: 30, categoryId: serums.id, description: '0.5% encapsulated retinol' },
+      { name: 'Niacinamide Pore Serum', brand: 'VeeSkin', size: '30ml', color: 'Clear', price: 195, cost: 58, stock: 45, categoryId: serums.id, description: '10% niacinamide + zinc' },
+      { name: 'Peptide Firming Serum', brand: 'VeeSkin', size: '30ml', color: 'Clear', price: 450, cost: 140, stock: 22, categoryId: serums.id, description: 'Multi-peptide complex for firmness' },
+      { name: 'Rose Hip Facial Oil', brand: 'VeeSkin', size: '30ml', color: 'Amber', price: 220, cost: 68, stock: 38, categoryId: serums.id, description: 'Cold-pressed rose hip seed oil' },
       // Moisturizers
-      { name: 'Daily Dew Moisturizer', sku: 'MOI-001', price: 240, cost: 70, stock: 50, categoryId: moisturizers.id, description: 'Lightweight gel-cream moisturizer' },
-      { name: 'Rich Night Cream', sku: 'MOI-002', price: 340, cost: 100, stock: 35, categoryId: moisturizers.id, description: 'Restorative overnight nourishing cream' },
-      { name: 'Eye Contour Cream', sku: 'MOI-003', price: 275, cost: 80, stock: 40, categoryId: moisturizers.id, description: 'Brightening eye cream with caffeine' },
-      { name: 'SPF 30 Tinted Moisturizer', sku: 'MOI-004', price: 220, cost: 68, stock: 45, categoryId: moisturizers.id, description: 'Tinted moisturizer with broad-spectrum SPF' },
-      { name: 'Neck & Décolleté Cream', sku: 'MOI-005', price: 395, cost: 120, stock: 25, categoryId: moisturizers.id, description: 'Firming cream for neck and chest' },
+      { name: 'Daily Dew Moisturizer', brand: 'VeeSkin', size: '50ml', color: 'White', price: 240, cost: 70, stock: 50, categoryId: moisturizers.id, description: 'Lightweight gel-cream moisturizer' },
+      { name: 'Rich Night Cream', brand: 'VeeSkin', size: '50ml', color: 'White', price: 340, cost: 100, stock: 35, categoryId: moisturizers.id, description: 'Restorative overnight nourishing cream' },
+      { name: 'Eye Contour Cream', brand: 'VeeSkin', size: '15ml', color: 'White', price: 275, cost: 80, stock: 40, categoryId: moisturizers.id, description: 'Brightening eye cream with caffeine' },
+      { name: 'SPF 30 Tinted Moisturizer', brand: 'VeeSkin', size: '50ml', color: 'Beige', price: 220, cost: 68, stock: 45, categoryId: moisturizers.id, description: 'Tinted moisturizer with broad-spectrum SPF' },
+      { name: 'Neck & Décolleté Cream', brand: 'VeeSkin', size: '50ml', color: 'White', price: 395, cost: 120, stock: 25, categoryId: moisturizers.id, description: 'Firming cream for neck and chest' },
       // Masks
-      { name: 'Rose Petal Sheet Mask', sku: 'MSK-001', price: 45, cost: 15, stock: 100, categoryId: masks.id, description: 'Single-use hydrating rose sheet mask' },
-      { name: 'Clay Detox Mask', sku: 'MSK-002', price: 165, cost: 48, stock: 40, categoryId: masks.id, description: 'Kaolin + bentonite purifying mask' },
-      { name: 'Overnight Sleeping Mask', sku: 'MSK-003', price: 220, cost: 65, stock: 35, categoryId: masks.id, description: 'Gel sleeping mask for intense hydration' },
-      { name: 'Gold Eye Patches', sku: 'MSK-004', price: 130, cost: 38, stock: 60, categoryId: masks.id, description: 'Set of 5 gold-infused eye patches' },
-      { name: 'Enzyme Peel Mask', sku: 'MSK-005', price: 205, cost: 60, stock: 30, categoryId: masks.id, description: 'Papaya enzyme radiance mask' },
+      { name: 'Rose Petal Sheet Mask', brand: 'VeeSkin', size: '25ml', color: 'Pink', price: 45, cost: 15, stock: 100, categoryId: masks.id, description: 'Single-use hydrating rose sheet mask' },
+      { name: 'Clay Detox Mask', brand: 'VeeSkin', size: '100ml', color: 'Grey', price: 165, cost: 48, stock: 40, categoryId: masks.id, description: 'Kaolin + bentonite purifying mask' },
+      { name: 'Overnight Sleeping Mask', brand: 'VeeSkin', size: '50ml', color: 'Clear', price: 220, cost: 65, stock: 35, categoryId: masks.id, description: 'Gel sleeping mask for intense hydration' },
+      { name: 'Gold Eye Patches', brand: 'VeeSkin', size: '5pk', color: 'Gold', price: 130, cost: 38, stock: 60, categoryId: masks.id, description: 'Set of 5 gold-infused eye patches' },
+      { name: 'Enzyme Peel Mask', brand: 'VeeSkin', size: '50ml', color: 'Orange', price: 205, cost: 60, stock: 30, categoryId: masks.id, description: 'Papaya enzyme radiance mask' },
       // Perfumes
-      { name: 'Rose Gold Eau de Parfum', sku: 'PRF-001', price: 680, cost: 190, stock: 25, categoryId: perfumes.id, description: '50ml — Damask rose, amber, sandalwood' },
-      { name: 'Pink Petals Eau de Toilette', sku: 'PRF-002', price: 450, cost: 130, stock: 35, categoryId: perfumes.id, description: '50ml — Peony, lychee, white musk' },
-      { name: 'Velvet Oud Parfum', sku: 'PRF-003', price: 1050, cost: 325, stock: 15, categoryId: perfumes.id, description: '50ml — Oud, bergamot, vanilla' },
-      { name: 'Citrus Blossom EDT', sku: 'PRF-004', price: 410, cost: 110, stock: 40, categoryId: perfumes.id, description: '50ml — Neroli, bergamot, jasmine' },
-      { name: 'Vanilla Musk EDP', sku: 'PRF-005', price: 590, cost: 160, stock: 30, categoryId: perfumes.id, description: '50ml — Madagascar vanilla, musk, cedar' },
-      { name: 'Travel Spray Trio', sku: 'PRF-006', price: 350, cost: 110, stock: 45, categoryId: perfumes.id, description: '3 × 10ml travel sprays' },
-      { name: 'Solid Perfume Compact', sku: 'PRF-007', price: 240, cost: 70, stock: 50, categoryId: perfumes.id, description: 'Refillable rose solid perfume' },
+      { name: 'Rose Gold Eau de Parfum', brand: 'VeeSkin', size: '50ml', color: 'Gold', price: 680, cost: 190, stock: 25, categoryId: perfumes.id, description: 'Damask rose, amber, sandalwood' },
+      { name: 'Pink Petals Eau de Toilette', brand: 'VeeSkin', size: '50ml', color: 'Pink', price: 450, cost: 130, stock: 35, categoryId: perfumes.id, description: 'Peony, lychee, white musk' },
+      { name: 'Velvet Oud Parfum', brand: 'VeeSkin', size: '50ml', color: 'Black', price: 1050, cost: 325, stock: 15, categoryId: perfumes.id, description: 'Oud, bergamot, vanilla' },
+      { name: 'Citrus Blossom EDT', brand: 'VeeSkin', size: '50ml', color: 'Yellow', price: 410, cost: 110, stock: 40, categoryId: perfumes.id, description: 'Neroli, bergamot, jasmine' },
+      { name: 'Vanilla Musk EDP', brand: 'VeeSkin', size: '50ml', color: 'Amber', price: 590, cost: 160, stock: 30, categoryId: perfumes.id, description: 'Madagascar vanilla, musk, cedar' },
+      { name: 'Travel Spray Trio', brand: 'VeeSkin', size: '3x10ml', color: 'Gold', price: 350, cost: 110, stock: 45, categoryId: perfumes.id, description: '3 × 10ml travel sprays' },
+      { name: 'Solid Perfume Compact', brand: 'VeeSkin', size: '10g', color: 'Rose', price: 240, cost: 70, stock: 50, categoryId: perfumes.id, description: 'Refillable rose solid perfume' },
       // Body Care
-      { name: 'Rose Body Lotion', sku: 'BDY-001', price: 145, cost: 42, stock: 60, categoryId: bodyCare.id, description: '200ml — Nourishing rose-scented body lotion' },
-      { name: 'Sugar Body Scrub', sku: 'BDY-002', price: 175, cost: 50, stock: 45, categoryId: bodyCare.id, description: '200ml — Brown sugar & vanilla scrub' },
-      { name: 'Hand Cream Deluxe', sku: 'BDY-003', price: 95, cost: 28, stock: 80, categoryId: bodyCare.id, description: '75ml — Shea butter hand cream' },
-      { name: 'Body Oil Gold Shimmer', sku: 'BDY-004', price: 220, cost: 65, stock: 35, categoryId: bodyCare.id, description: '150ml — Luminous dry body oil' },
-      { name: 'Bath Soak Rose Petals', sku: 'BDY-005', price: 130, cost: 35, stock: 50, categoryId: bodyCare.id, description: '300g — Mineral bath soak with rose petals' },
-      { name: 'Lip Treatment Balm', sku: 'BDY-006', price: 85, cost: 22, stock: 90, categoryId: bodyCare.id, description: '15ml — Plumping lip balm with peptides' },
+      { name: 'Rose Body Lotion', brand: 'VeeSkin', size: '200ml', color: 'Pink', price: 145, cost: 42, stock: 60, categoryId: bodyCare.id, description: 'Nourishing rose-scented body lotion' },
+      { name: 'Sugar Body Scrub', brand: 'VeeSkin', size: '200ml', color: 'Brown', price: 175, cost: 50, stock: 45, categoryId: bodyCare.id, description: 'Brown sugar & vanilla scrub' },
+      { name: 'Hand Cream Deluxe', brand: 'VeeSkin', size: '75ml', color: 'White', price: 95, cost: 28, stock: 80, categoryId: bodyCare.id, description: 'Shea butter hand cream' },
+      { name: 'Body Oil Gold Shimmer', brand: 'VeeSkin', size: '150ml', color: 'Gold', price: 220, cost: 65, stock: 35, categoryId: bodyCare.id, description: 'Luminous dry body oil' },
+      { name: 'Bath Soak Rose Petals', brand: 'VeeSkin', size: '300g', color: 'Pink', price: 130, cost: 35, stock: 50, categoryId: bodyCare.id, description: 'Mineral bath soak with rose petals' },
+      { name: 'Lip Treatment Balm', brand: 'VeeSkin', size: '15ml', color: 'Clear', price: 85, cost: 22, stock: 90, categoryId: bodyCare.id, description: 'Plumping lip balm with peptides' },
     ]
 
     for (const p of products) {
-      await db.product.create({ data: p })
+      const sku = await generateSku(p.name, p.brand, p.size, p.color)
+      await db.product.create({ data: { ...p, sku } })
     }
 
     // Create some sample orders

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requirePermission, AuthError, getCurrentUser } from '@/lib/auth'
+import { generateSku } from '@/lib/sku'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
         { name: { contains: search } },
         { sku: { contains: search } },
         { barcode: { contains: search } },
+        { brand: { contains: search } },
       ]
     }
 
@@ -48,11 +50,22 @@ export async function POST(request: NextRequest) {
     await requirePermission('productCreate')
 
     const body = await request.json()
+
+    // Auto-generate SKU from name + brand + size + color
+    // (unless the user explicitly provided a custom SKU)
+    let sku = body.sku?.trim()
+    if (!sku) {
+      sku = await generateSku(body.name, body.brand, body.size, body.color)
+    }
+
     const product = await db.product.create({
       data: {
         name: body.name,
-        sku: body.sku,
+        sku,
         description: body.description || null,
+        brand: body.brand?.trim() || null,
+        size: body.size?.trim() || null,
+        color: body.color?.trim() || null,
         price: Number(body.price),
         cost: Number(body.cost) || 0,
         stock: Number(body.stock) || 0,

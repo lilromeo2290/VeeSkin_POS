@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requirePermission, AuthError } from '@/lib/auth'
+import { generateSku } from '@/lib/sku'
 
 export async function GET(
   _request: NextRequest,
@@ -34,12 +35,30 @@ export async function PUT(
     await requirePermission('productUpdate')
     const { id } = await params
     const body = await request.json()
+
+    // If name/brand/size/color changed and no custom SKU provided, regenerate
+    const existing = await db.product.findUnique({ where: { id } })
+    let sku = body.sku?.trim() || existing?.sku
+    if (!body.sku && existing) {
+      const attrsChanged =
+        existing.name !== body.name ||
+        existing.brand !== (body.brand?.trim() || null) ||
+        existing.size !== (body.size?.trim() || null) ||
+        existing.color !== (body.color?.trim() || null)
+      if (attrsChanged) {
+        sku = await generateSku(body.name, body.brand, body.size, body.color, id)
+      }
+    }
+
     const product = await db.product.update({
       where: { id },
       data: {
         name: body.name,
-        sku: body.sku,
+        sku,
         description: body.description || null,
+        brand: body.brand?.trim() || null,
+        size: body.size?.trim() || null,
+        color: body.color?.trim() || null,
         price: Number(body.price),
         cost: Number(body.cost) || 0,
         stock: Number(body.stock),

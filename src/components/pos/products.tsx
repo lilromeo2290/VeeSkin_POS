@@ -19,12 +19,16 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/currency'
+import { previewSku } from '@/lib/sku'
 
 interface Product {
   id: string
   name: string
   sku: string
   description: string | null
+  brand: string | null
+  size: string | null
+  color: string | null
   price: number
   cost: number
   stock: number
@@ -44,6 +48,9 @@ interface Category {
 interface FormState {
   id?: string
   name: string
+  brand: string
+  size: string
+  color: string
   sku: string
   description: string
   price: string
@@ -56,6 +63,9 @@ interface FormState {
 
 const EMPTY_FORM: FormState = {
   name: '',
+  brand: '',
+  size: '',
+  color: '',
   sku: '',
   description: '',
   price: '',
@@ -108,6 +118,9 @@ export function ProductsManager() {
     setForm({
       id: product.id,
       name: product.name,
+      brand: product.brand || '',
+      size: product.size || '',
+      color: product.color || '',
       sku: product.sku,
       description: product.description || '',
       price: product.price.toString(),
@@ -121,19 +134,26 @@ export function ProductsManager() {
   }
 
   async function handleSave() {
-    if (!form.name.trim() || !form.sku.trim() || !form.price) {
-      toast.error('Name, SKU, and price are required')
+    if (!form.name.trim() || !form.price) {
+      toast.error('Name and price are required')
       return
     }
+    // SKU is auto-generated from name + brand + size + color if left blank
     setSaving(true)
     try {
       const payload = {
-        ...form,
+        name: form.name,
+        brand: form.brand || null,
+        size: form.size || null,
+        color: form.color || null,
+        sku: form.sku || null, // null = auto-generate on server
+        description: form.description,
         price: parseFloat(form.price),
         cost: parseFloat(form.cost) || 0,
         stock: parseInt(form.stock) || 0,
         lowStock: parseInt(form.lowStock) || 10,
         categoryId: form.categoryId || null,
+        isActive: form.isActive,
       }
       const url = form.id ? `/api/products/${form.id}` : '/api/products'
       const method = form.id ? 'PUT' : 'POST'
@@ -222,6 +242,7 @@ export function ProductsManager() {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>SKU</TableHead>
+                    <TableHead>Brand / Size / Color</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-right">Cost</TableHead>
@@ -254,6 +275,14 @@ export function ProductsManager() {
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs">{product.sku}</TableCell>
+                        <TableCell>
+                          <div className="text-xs space-y-0.5">
+                            {product.brand && <p className="font-medium">{product.brand}</p>}
+                            <p className="text-muted-foreground">
+                              {[product.size, product.color].filter(Boolean).join(' • ') || '—'}
+                            </p>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           {product.category ? (
                             <Badge variant="outline" style={{ color: product.category.color || undefined }}>
@@ -316,18 +345,57 @@ export function ProductsManager() {
                 id="name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Cappuccino"
+                placeholder="e.g. Rose Gel Cleanser"
               />
             </div>
+
+            {/* Brand, Size, Color — used for auto-SKU generation */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="brand">Brand</Label>
+                <Input
+                  id="brand"
+                  value={form.brand}
+                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                  placeholder="e.g. VeeSkin"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="size">Size</Label>
+                <Input
+                  id="size"
+                  value={form.size}
+                  onChange={(e) => setForm({ ...form, size: e.target.value })}
+                  placeholder="e.g. 100ml"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="color">Color</Label>
+                <Input
+                  id="color"
+                  value={form.color}
+                  onChange={(e) => setForm({ ...form, color: e.target.value })}
+                  placeholder="e.g. Clear"
+                />
+              </div>
+            </div>
+
+            {/* Auto-generated SKU (read-only preview) + Category */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="sku">SKU *</Label>
+                <Label htmlFor="sku">SKU (auto-generated)</Label>
                 <Input
                   id="sku"
-                  value={form.sku}
+                  value={form.sku || previewSku(form.name, form.brand, form.size, form.color)}
                   onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  placeholder="e.g. COF-001"
+                  placeholder="Auto-generated from name, brand, size, color"
+                  className="font-mono text-sm bg-muted/50"
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  {form.sku
+                    ? 'Custom SKU (manually set)'
+                    : `Will be auto-generated: ${previewSku(form.name, form.brand, form.size, form.color)}`}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>

@@ -74,6 +74,10 @@ model Product {
   name        String
   sku         String      @unique
   description String?
+  // Product attributes used for auto-SKU generation
+  brand       String?
+  size        String?
+  color       String?
   price       Float
   cost        Float       @default(0)
   stock       Int         @default(0)
