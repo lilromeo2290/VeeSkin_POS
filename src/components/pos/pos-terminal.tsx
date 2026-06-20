@@ -282,7 +282,7 @@ export function PosTerminal() {
       </div>
 
       {/* Cart section */}
-      <Card className="w-full lg:w-[380px] shrink-0 flex flex-col h-full">
+      <Card className="w-full lg:w-[440px] shrink-0 flex flex-col h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
