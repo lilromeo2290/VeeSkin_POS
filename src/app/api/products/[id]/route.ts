@@ -67,7 +67,7 @@ export async function PUT(
         categoryId: body.categoryId || null,
         isActive: body.isActive !== false,
       },
-      include: { category: true },
+      include: { category: true, variants: true },
     })
     return NextResponse.json(product)
   } catch (error) {

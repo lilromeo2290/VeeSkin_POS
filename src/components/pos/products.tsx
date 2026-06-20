@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table'
 import {
-  Search, Plus, Pencil, Trash2, Package, Loader2, DollarSign
+  Search, Plus, Pencil, Trash2, Package, Loader2, DollarSign, Layers
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/currency'
@@ -499,6 +499,11 @@ export function ProductsManager() {
                 onCheckedChange={(v) => setForm({ ...form, isActive: v })}
               />
             </div>
+
+            {/* Variants section — only shown when editing an existing product */}
+            {form.id && (
+              <VariantsEditor productId={form.id} productName={form.name} brand={form.brand} />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
@@ -530,6 +535,231 @@ export function ProductsManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+// ─── Variants Editor Sub-component ───────────────────────────────────────────
+
+interface Variant {
+  id: string
+  name: string
+  size: string | null
+  color: string | null
+  scent: string | null
+  sku: string
+  price: number | null
+  stock: number
+  isActive: boolean
+}
+
+interface VariantsEditorProps {
+  productId: string
+  productName: string
+  brand: string
+}
+
+function VariantsEditor({ productId, productName, brand }: VariantsEditorProps) {
+  const [variants, setVariants] = useState<Variant[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingVariant, setEditingVariant] = useState<Variant | null>(null)
+
+  // New variant form state
+  const [vName, setVName] = useState('')
+  const [vSize, setVSize] = useState('')
+  const [vColor, setVColor] = useState('')
+  const [vScent, setVScent] = useState('')
+  const [vPrice, setVPrice] = useState('')
+  const [vStock, setVStock] = useState('0')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    loadVariants()
+  }, [productId])
+
+  async function loadVariants() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/products/${productId}/variants`)
+      if (!res.ok) throw new Error('Failed')
+      const json = await res.json()
+      setVariants(json)
+    } catch {
+      // Silent fail — variants are optional
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function resetForm() {
+    setVName('')
+    setVSize('')
+    setVColor('')
+    setVScent('')
+    setVPrice('')
+    setVStock('0')
+    setEditingVariant(null)
+    setShowForm(false)
+  }
+
+  function startEdit(v: Variant) {
+    setEditingVariant(v)
+    setVName(v.name)
+    setVSize(v.size || '')
+    setVColor(v.color || '')
+    setVScent(v.scent || '')
+    setVPrice(v.price != null ? v.price.toString() : '')
+    setVStock(v.stock.toString())
+    setShowForm(true)
+  }
+
+  async function handleSaveVariant() {
+    setSaving(true)
+    try {
+      const payload = {
+        name: vName || [vSize, vColor, vScent].filter(Boolean).join(' - ') || 'Default',
+        size: vSize || null,
+        color: vColor || null,
+        scent: vScent || null,
+        price: vPrice ? parseFloat(vPrice) : null,
+        stock: parseInt(vStock) || 0,
+      }
+      const url = editingVariant
+        ? `/api/variants/${editingVariant.id}`
+        : `/api/products/${productId}/variants`
+      const method = editingVariant ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Save failed')
+      }
+      toast.success(editingVariant ? 'Variant updated' : 'Variant created')
+      resetForm()
+      await loadVariants()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save variant')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDeleteVariant(v: Variant) {
+    if (!confirm(`Delete variant "${v.name}"?`)) return
+    try {
+      const res = await fetch(`/api/variants/${v.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Delete failed')
+      toast.success('Variant deleted')
+      await loadVariants()
+    } catch {
+      toast.error('Failed to delete variant')
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      <div className="flex items-center justify-between p-3 bg-muted/40 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-[#D4A574]" />
+          <div>
+            <p className="text-sm font-medium">Product Variants</p>
+            <p className="text-xs text-muted-foreground">
+              {variants.length > 0
+                ? `${variants.length} variant${variants.length !== 1 ? 's' : ''} (different sizes, colors, or scents)`
+                : 'Add variants for different sizes, colors, or scents'}
+            </p>
+          </div>
+        </div>
+        {!showForm && (
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Variant
+          </Button>
+        )}
+      </div>
+
+      {/* Variant form */}
+      {showForm && (
+        <div className="p-3 space-y-3 border-b border-border bg-muted/20">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Size</Label>
+              <Input value={vSize} onChange={(e) => setVSize(e.target.value)} placeholder="50ml" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Color</Label>
+              <Input value={vColor} onChange={(e) => setVColor(e.target.value)} placeholder="Pink" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Scent</Label>
+              <Input value={vScent} onChange={(e) => setVScent(e.target.value)} placeholder="Rose" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Price (override)</Label>
+              <Input value={vPrice} onChange={(e) => setVPrice(e.target.value)} placeholder="Use default" className="h-8 text-sm" type="number" step="0.01" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Stock</Label>
+              <Input value={vStock} onChange={(e) => setVStock(e.target.value)} className="h-8 text-sm" type="number" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Variant Name</Label>
+              <Input value={vName} onChange={(e) => setVName(e.target.value)} placeholder="Auto from size/color" className="h-8 text-sm" />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>
+            <Button type="button" size="sm" onClick={handleSaveVariant} disabled={saving} className="brand-gradient hover:opacity-90 border-0">
+              {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              {editingVariant ? 'Update' : 'Add'} Variant
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Variants list */}
+      <div className="max-h-48 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : variants.length === 0 ? (
+          <div className="text-center py-6 text-xs text-muted-foreground">
+            No variants yet. The product uses its default price and stock.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {variants.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 p-2.5 hover:bg-muted/30">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{v.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{v.sku}</p>
+                </div>
+                <div className="text-right text-xs">
+                  {v.price != null ? (
+                    <p className="font-medium">{formatCurrency(v.price)}</p>
+                  ) : (
+                    <p className="text-muted-foreground">Default price</p>
+                  )}
+                  <p className="text-muted-foreground">Stock: {v.stock}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(v)}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteVariant(v)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

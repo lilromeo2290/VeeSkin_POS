@@ -148,6 +148,7 @@ export function canAccessView(role: Role, view: string, overrides?: Partial<Reco
     dashboard: 'viewDashboard',
     pos: 'viewPOS',
     products: 'viewProducts',
+    categories: 'viewProducts', // Categories uses the same permission as Products
     orders: 'viewOrders',
     inventory: 'viewInventory',
     users: 'viewUsers',

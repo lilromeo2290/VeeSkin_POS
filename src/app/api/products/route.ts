@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     let products = await db.product.findMany({
       where,
-      include: { category: true },
+      include: { category: true, variants: true },
       orderBy: { name: 'asc' },
     })
 
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         categoryId: body.categoryId || null,
         isActive: body.isActive !== false,
       },
-      include: { category: true },
+      include: { category: true, variants: true },
     })
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
