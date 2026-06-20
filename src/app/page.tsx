@@ -11,6 +11,7 @@ import { InventoryView } from '@/components/pos/inventory'
 import { UsersManager } from '@/components/pos/users'
 import { SettingsView } from '@/components/pos/settings'
 import { CategoriesManager } from '@/components/pos/categories'
+import { ReportsView } from '@/components/pos/reports'
 import { AuthGate } from '@/components/pos/auth-gate'
 import { useCartStore } from '@/lib/cart-store'
 import { Button } from '@/components/ui/button'
@@ -260,6 +261,7 @@ export default function Home() {
           {effectiveView === 'categories' && canUserAccessView(user, 'products') && <CategoriesManager />}
           {effectiveView === 'orders' && <OrdersView />}
           {effectiveView === 'inventory' && <InventoryView />}
+          {effectiveView === 'reports' && canUserAccessView(user, 'reports') && <ReportsView />}
           {effectiveView === 'users' && user.role === 'ADMIN' && <UsersManager currentUser={user} />}
           {effectiveView === 'settings' && user.role === 'ADMIN' && <SettingsView />}
         </div>
