@@ -356,24 +356,6 @@ export function PosTerminal() {
                 </div>
               </ScrollArea>
 
-              {/* Customer info */}
-              <div className="border-t border-border px-4 pt-3 pb-1 grid grid-cols-2 gap-2">
-                <Input
-                  type="text"
-                  value={cart.customerName}
-                  onChange={(e) => cart.setCustomerName(e.target.value)}
-                  placeholder="Customer name (optional)"
-                  className="h-8 text-sm"
-                />
-                <Input
-                  type="tel"
-                  value={cart.customerPhone}
-                  onChange={(e) => cart.setCustomerPhone(e.target.value)}
-                  placeholder="Phone (for SMS receipt)"
-                  className="h-8 text-sm"
-                />
-              </div>
-
               <div className="border-t border-border p-4 space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-sm">
@@ -479,6 +461,33 @@ export function PosTerminal() {
               </div>
             </div>
 
+            {/* Customer details — entered at checkout */}
+            <div className="space-y-2 rounded-lg border border-border p-3 bg-muted/30">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer Details (for SMS Receipt)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="text"
+                  value={cart.customerName}
+                  onChange={(e) => cart.setCustomerName(e.target.value)}
+                  placeholder="Customer name"
+                  className="h-9"
+                />
+                <Input
+                  type="tel"
+                  value={cart.customerPhone}
+                  onChange={(e) => cart.setCustomerPhone(e.target.value)}
+                  placeholder="Phone number (e.g. 0241234567)"
+                  className="h-9"
+                />
+              </div>
+              {cart.customerPhone && cart.customerPhone.trim() && (
+                <p className="text-xs text-emerald-600 flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3" />
+                  SMS receipt will be sent to {cart.customerPhone}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Payment Method</Label>
               <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'CASH' | 'MOMO' | 'CARD')} className="grid grid-cols-3 gap-2">
@@ -507,16 +516,6 @@ export function PosTerminal() {
                 })}
               </RadioGroup>
             </div>
-
-            {/* SMS receipt confirmation */}
-            {cart.customerPhone && cart.customerPhone.trim() && (
-              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-2.5 text-xs">
-                <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-emerald-700 dark:text-emerald-400">
-                  SMS receipt will be sent to <strong>{cart.customerPhone}</strong>
-                </span>
-              </div>
-            )}
 
             {/* Cash payment: amount tendered + change */}
             {paymentMethod === 'CASH' && (
