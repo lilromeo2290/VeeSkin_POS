@@ -137,7 +137,21 @@ export function PosTerminal() {
       }
       const order = await res.json()
       setLastOrder(order)
-      // Clear everything for the next sale — explicitly reset all cart fields
+      // Clear everything for the next sale
+      // Step 1: Reset Zustand state
+      useCartStore.setState({
+        items: [],
+        customerName: '',
+        customerPhone: '',
+        discount: 0,
+      })
+      // Step 2: Force-clear localStorage (persist middleware will re-read this)
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('pos-cart-storage')
+        } catch {}
+      }
+      // Step 3: Reset again after localStorage clear to override any rehydration
       useCartStore.setState({
         items: [],
         customerName: '',
