@@ -22,6 +22,11 @@ export async function GET() {
       db.product.findMany({ where: { isActive: true } }),
     ])
 
+    // ─── Expiry alerts for the dashboard ───
+    const expirySoon = new Date(now.getTime() + 30 * 86400000)
+    const expiredProducts = products.filter(p => p.expiryDate && new Date(p.expiryDate) < now && p.isActive)
+    const expiringProducts = products.filter(p => p.expiryDate && new Date(p.expiryDate) >= now && new Date(p.expiryDate) <= expirySoon && p.isActive)
+
     const todayRevenue = todayOrders.reduce((s, o) => s + o.total, 0)
     const yesterdayRevenue = yesterdayOrders.reduce((s, o) => s + o.total, 0)
     const weekRevenue = weekOrders.reduce((s, o) => s + o.total, 0)
@@ -34,6 +39,28 @@ export async function GET() {
     const avgOrderValue = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0
 
     const lowStock = lowStockProducts.filter((p) => p.stock <= p.lowStock)
+
+    // ─── Issues requiring attention ───
+    const outOfStockCount = lowStock.filter(p => p.stock === 0).length
+    const lowStockCount = lowStock.filter(p => p.stock > 0 && p.stock <= (p.lowStock || 10)).length
+    const needReorder = lowStockProducts.filter(p => p.stock <= (p.reorderPoint || 20) && p.stock > 0)
+
+    const issues: Array<{ type: string; severity: 'critical' | 'warning' | 'info'; message: string; count: number }> = []
+    if (outOfStockCount > 0) {
+      issues.push({ type: 'out_of_stock', severity: 'critical', message: `${outOfStockCount} product(s) are out of stock`, count: outOfStockCount })
+    }
+    if (lowStockCount > 0) {
+      issues.push({ type: 'low_stock', severity: 'warning', message: `${lowStockCount} product(s) are running low on stock`, count: lowStockCount })
+    }
+    if (expiredProducts.length > 0) {
+      issues.push({ type: 'expired', severity: 'critical', message: `${expiredProducts.length} product(s) have expired`, count: expiredProducts.length })
+    }
+    if (expiringProducts.length > 0) {
+      issues.push({ type: 'expiring_soon', severity: 'warning', message: `${expiringProducts.length} product(s) expiring within 30 days`, count: expiringProducts.length })
+    }
+    if (needReorder.length > 0) {
+      issues.push({ type: 'reorder', severity: 'info', message: `${needReorder.length} product(s) need reordering`, count: needReorder.length })
+    }
 
     const hourlyData = Array.from({ length: 24 }, (_, h) => {
       const hourOrders = todayOrders.filter((o) => o.createdAt.getHours() === h)
@@ -125,7 +152,10 @@ export async function GET() {
       paymentBreakdown,
       categoryData,
       recentOrders: allOrders.slice(0, 8),
-      lowStockProducts: lowStock.map((p) => ({ id: p.id, name: p.name, sku: p.sku, stock: p.stock, lowStock: p.lowStock })),
+      lowStockProducts: lowStock.map((p) => ({ id: p.id, name: p.name, sku: p.sku, stock: p.stock, lowStock: p.lowStock, reorderPoint: p.reorderPoint || 20, category: p.category?.name || null })),
+      issues,
+      expiredProducts: expiredProducts.map(p => ({ id: p.id, name: p.name, sku: p.sku, expiryDate: p.expiryDate })),
+      expiringProducts: expiringProducts.map(p => ({ id: p.id, name: p.name, sku: p.sku, expiryDate: p.expiryDate })),
     })
   } catch (error) {
     if (error instanceof AuthError) {

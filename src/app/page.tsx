@@ -255,7 +255,7 @@ export default function Home() {
 
         {/* View content */}
         <div className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
-          {effectiveView === 'dashboard' && <Dashboard />}
+          {effectiveView === 'dashboard' && <Dashboard onNavigate={setView} />}
           {effectiveView === 'pos' && <PosTerminal />}
           {effectiveView === 'products' && <ProductsManager />}
           {effectiveView === 'categories' && canUserAccessView(user, 'products') && <CategoriesManager />}
