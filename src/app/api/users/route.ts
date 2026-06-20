@@ -4,11 +4,13 @@ import {
   hashPassword,
   requirePermission,
   AuthError,
+  getCurrentUser,
   type Role,
   PERMISSIONS,
   serializePermissionsJson,
   type Permission,
 } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   try {
@@ -93,6 +95,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, name: true, email: true, role: true, isActive: true, permissionsJson: true, createdAt: true },
     })
 
+    await logAudit({ user: await getCurrentUser(), action: 'CREATE', entity: 'user', entityId: user.id, description: `Created user: ${user.name} (${user.email}) — role: ${user.role}`, request, statusCode: 201 })
     return NextResponse.json({
       ...user,
       permissions: user.permissionsJson ? JSON.parse(user.permissionsJson) : {},

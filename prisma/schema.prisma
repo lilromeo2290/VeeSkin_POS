@@ -10,6 +10,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Audit Log (Admin Monitoring — tracks all user activity) ──────────────────
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  // null = unauthenticated attempt
+  userEmail   String?  // snapshot of email at time of action
+  userName    String?
+  userRole    String?
+  action      String   // LOGIN, LOGOUT, LOGIN_FAILED, CREATE, UPDATE, DELETE, VIEW, etc.
+  entity      String   // product, order, user, category, company_info, etc.
+  entityId    String?  // ID of the affected entity
+  description String   // human-readable description
+  ipAddress   String?
+  userAgent   String?  // browser/device info
+  statusCode  Int?     // HTTP status code (for API calls)
+  method      String?  // GET, POST, PUT, DELETE
+  path        String?  // API path
+  createdAt   DateTime @default(now())
+}
+
 // ─── Authentication & Roles ──────────────────────────────────────────────────
 // Role hierarchy: ADMIN > MANAGER > CASHIER
 //   - ADMIN:   full access (users, products, orders, inventory, dashboard, settings)

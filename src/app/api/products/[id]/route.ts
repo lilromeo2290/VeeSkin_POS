@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requirePermission, AuthError } from '@/lib/auth'
+import { requirePermission, AuthError, getCurrentUser } from '@/lib/auth'
 import { generateSku } from '@/lib/sku'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(
   _request: NextRequest,
@@ -75,6 +76,7 @@ export async function PUT(
       },
       include: { category: true, variants: true },
     })
+    await logAudit({ user: await getCurrentUser(), action: 'UPDATE', entity: 'product', entityId: id, description: `Updated product: ${product.name} (${product.sku})`, request, statusCode: 200 })
     return NextResponse.json(product)
   } catch (error) {
     if (error instanceof AuthError) {
@@ -86,13 +88,15 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requirePermission('productDelete')
+    const user = await requirePermission('productDelete')
     const { id } = await params
+    const product = await db.product.findUnique({ where: { id }, select: { name: true, sku: true } })
     await db.product.delete({ where: { id } })
+    await logAudit({ user, action: 'DELETE', entity: 'product', entityId: id, description: `Deleted product: ${product?.name || id} (${product?.sku || ''})`, request, statusCode: 200 })
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof AuthError) {

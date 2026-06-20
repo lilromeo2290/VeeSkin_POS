@@ -154,6 +154,7 @@ export function canAccessView(role: Role, view: string, overrides?: Partial<Reco
     orders: 'viewOrders',
     inventory: 'viewInventory',
     users: 'viewUsers',
+    audit: 'viewUsers', // Audit log uses same permission as user management (admin-only)
     settings: 'viewSettings',
     reports: 'viewReports',
   }

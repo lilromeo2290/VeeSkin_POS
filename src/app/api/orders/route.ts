@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireAuth, requirePermission, AuthError, getEffectivePermission, type SessionUser } from '@/lib/auth'
 import { calculateTax, calculateChange } from '@/lib/tax'
 import { sendReceiptSms } from '@/lib/sms'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -142,6 +143,17 @@ export async function POST(request: NextRequest) {
         smsResult = { success: false, message: 'SMS sending failed (order completed)' }
       }
     }
+
+    // Log the order creation
+    await logAudit({
+      user,
+      action: 'CREATE',
+      entity: 'order',
+      entityId: order.id,
+      description: `Created order ${order.orderNumber} — ${order.itemsCount} items, total ${order.total} (${order.paymentMethod})`,
+      request,
+      statusCode: 201,
+    })
 
     // Return the order with SMS status
     return NextResponse.json({

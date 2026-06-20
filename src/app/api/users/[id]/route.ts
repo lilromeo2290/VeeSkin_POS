@@ -10,6 +10,7 @@ import {
   serializePermissionsJson,
   type Permission,
 } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 export async function PUT(
   request: NextRequest,
@@ -93,6 +94,7 @@ export async function PUT(
       select: { id: true, name: true, email: true, role: true, isActive: true, permissionsJson: true, createdAt: true },
     })
 
+    await logAudit({ user: currentUser, action: 'UPDATE', entity: 'user', entityId: id, description: `Updated user: ${user.name} (${user.email}) — role: ${user.role}`, request, statusCode: 200 })
     return NextResponse.json({
       ...user,
       permissions: user.permissionsJson ? JSON.parse(user.permissionsJson) : {},
@@ -135,7 +137,9 @@ export async function DELETE(
       }
     }
 
+    const deletedUser = target
     await db.user.delete({ where: { id } })
+    await logAudit({ user: currentUser, action: 'DELETE', entity: 'user', entityId: id, description: `Deleted user account`, request, statusCode: 200 })
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof AuthError) {

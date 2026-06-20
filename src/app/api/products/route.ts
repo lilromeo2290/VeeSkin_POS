@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requirePermission, AuthError, getCurrentUser } from '@/lib/auth'
 import { generateSku } from '@/lib/sku'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       },
       include: { category: true, variants: true },
     })
+    await logAudit({ user: await getCurrentUser(), action: 'CREATE', entity: 'product', entityId: product.id, description: `Created product: ${product.name} (${product.sku})`, request, statusCode: 201 })
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {

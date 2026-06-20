@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requirePermission, getCurrentUser, AuthError } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
 
 /**
  * GET /api/company-info
@@ -62,6 +63,7 @@ export async function PUT(request: NextRequest) {
       create: { id: 'default', ...data },
     })
 
+    await logAudit({ user, action: 'UPDATE', entity: 'company_info', description: `Updated business information (${data.name})`, request, statusCode: 200 })
     return NextResponse.json(info)
   } catch (error) {
     if (error instanceof AuthError) {
