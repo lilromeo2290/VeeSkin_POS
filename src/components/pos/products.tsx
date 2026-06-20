@@ -386,15 +386,24 @@ export function ProductsManager() {
                 <Label htmlFor="sku">SKU (auto-generated)</Label>
                 <Input
                   id="sku"
-                  value={form.sku || previewSku(form.name, form.brand, form.size, form.color)}
+                  value={
+                    form.sku
+                      ? form.sku
+                      : form.name
+                        ? previewSku(form.name, form.brand, form.size, form.color)
+                        : ''
+                  }
                   onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  placeholder="Auto-generated from name, brand, size, color"
+                  placeholder="Enter product name to generate SKU..."
                   className="font-mono text-sm bg-muted/50"
+                  readOnly={!form.sku}
                 />
                 <p className="text-[11px] text-muted-foreground">
                   {form.sku
-                    ? 'Custom SKU (manually set)'
-                    : `Will be auto-generated: ${previewSku(form.name, form.brand, form.size, form.color)}`}
+                    ? '⚠ Custom SKU — click to edit manually'
+                    : form.name
+                      ? `✓ Auto-generated from: ${[form.brand, form.name, form.size, form.color].filter(Boolean).join(' + ')}`
+                      : '💡 SKU generates automatically when you enter the product name'}
                 </p>
               </div>
               <div className="space-y-2">

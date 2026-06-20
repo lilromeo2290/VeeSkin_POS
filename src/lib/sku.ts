@@ -59,15 +59,14 @@ export async function generateSku(
   color?: string | null,
   excludeId?: string
 ): Promise<string> {
-  const brandSlug = slug3(brand)
-  const nameSlug = slug3(name)
-  const sizeSlug = slug3(size)
-  const colorSlug = color ? slug3(color) : null
-
   // Build the base SKU (without the sequence number)
-  const parts = [brandSlug, nameSlug, sizeSlug]
-  if (colorSlug) parts.push(colorSlug)
-  const base = parts.join('-')
+  // Skip empty fields so the SKU is clean (no "XX" placeholders)
+  const parts: string[] = []
+  if (brand && brand.trim()) parts.push(slug3(brand))
+  if (name && name.trim()) parts.push(slug3(name))
+  if (size && size.trim()) parts.push(slug3(size))
+  if (color && color.trim()) parts.push(slug3(color))
+  const base = parts.length > 0 ? parts.join('-') : 'SKU'
 
   // Find the next available sequence number
   // Look for existing SKUs that start with this base pattern
@@ -101,6 +100,8 @@ export async function generateSku(
  * Preview the SKU that would be generated (without the sequence number).
  * Used in the UI to show the user what their SKU will look like before saving.
  *
+ * Empty fields are SKIPPED (not shown as "XX") so the preview is clean.
+ *
  * @returns The base SKU pattern (e.g., "VEE-RGC-100") without the sequence number
  */
 export function previewSku(
@@ -109,16 +110,14 @@ export function previewSku(
   size?: string | null,
   color?: string | null
 ): string {
-  const brandSlug = slug3(brand)
-  const nameSlug = slug3(name)
-  const sizeSlug = slug3(size)
-  const colorSlug = color ? slug3(color) : null
+  const parts: string[] = []
+  if (brand && brand.trim()) parts.push(slug3(brand))
+  if (name && name.trim()) parts.push(slug3(name))
+  if (size && size.trim()) parts.push(slug3(size))
+  if (color && color.trim()) parts.push(slug3(color))
 
-  const parts = [brandSlug, nameSlug, sizeSlug]
-  if (colorSlug) parts.push(colorSlug)
-  const base = parts.join('-')
-
-  return `${base}-001` // Show 001 as the preview sequence
+  const base = parts.length > 0 ? parts.join('-') : 'SKU'
+  return `${base}-001`
 }
 
 function escapeRegex(s: string): string {
