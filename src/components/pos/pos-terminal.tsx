@@ -137,9 +137,13 @@ export function PosTerminal() {
       }
       const order = await res.json()
       setLastOrder(order)
-      cart.clear()
-      cart.setCustomerName('')
-      cart.setCustomerPhone('')
+      // Clear everything for the next sale — explicitly reset all cart fields
+      useCartStore.setState({
+        items: [],
+        customerName: '',
+        customerPhone: '',
+        discount: 0,
+      })
       setCheckoutOpen(false)
       setAmountTendered('')
       toast.success(`Order ${order.orderNumber} completed!`)
