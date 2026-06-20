@@ -221,7 +221,7 @@ export function PosTerminal() {
         {/* Products grid */}
         <ScrollArea className="flex-1 -mx-1 px-1">
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
               ))}
@@ -232,7 +232,7 @@ export function PosTerminal() {
               <p className="text-sm text-muted-foreground">No products found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {filteredProducts.map((product) => {
                 const inCart = cart.items.find((i) => i.productId === product.id)
                 const outOfStock = product.stock <= 0
