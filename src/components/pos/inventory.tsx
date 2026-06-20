@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Boxes, PackageX, TrendingDown, Loader2, Save, RefreshCw, CalendarClock, Minus, Plus, Pencil, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/currency'
+import { ExpiryAlertBanner } from '@/components/pos/expiry-alert'
 
 interface Product {
   id: string
@@ -172,6 +173,9 @@ export function InventoryView() {
 
   return (
     <div className="space-y-4">
+      {/* Expiry alert banner */}
+      <ExpiryAlertBanner />
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>

@@ -13,6 +13,7 @@ import {
   ResponsiveContainer, Legend, Line, LineChart
 } from 'recharts'
 import { formatCurrency } from '@/lib/currency'
+import { ExpiryAlertBanner } from '@/components/pos/expiry-alert'
 import { toast } from 'sonner'
 
 interface ReportData {
@@ -114,6 +115,9 @@ export function ReportsView() {
 
   return (
     <div className="space-y-6">
+      {/* Expiry alert banner */}
+      <ExpiryAlertBanner />
+
       {/* ─── Section 1: Sales Reports ─── */}
       <div>
         <div className="flex items-center gap-2 mb-3">

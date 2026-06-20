@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/currency'
+import { ExpiryAlertBanner } from '@/components/pos/expiry-alert'
 
 interface DashboardData {
   today: { revenue: number; orders: number; itemsSold: number; avgOrderValue: number; revenueChange: number }
@@ -102,6 +103,9 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Expiry alert banner */}
+      <ExpiryAlertBanner />
+
       {/* KPI cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
