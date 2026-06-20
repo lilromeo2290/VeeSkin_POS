@@ -159,9 +159,9 @@ export function PosTerminal() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-7rem)] md:h-[calc(100vh-3rem)]">
+    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-7rem)] md:h-[calc(100vh-3rem)] overflow-hidden">
       {/* Products section */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Search & category filter */}
         <div className="space-y-3 mb-4">
           <div className="relative">
@@ -282,7 +282,7 @@ export function PosTerminal() {
       </div>
 
       {/* Cart section */}
-      <Card className="w-full lg:w-[440px] shrink-0 flex flex-col h-full">
+      <Card className="w-full lg:w-[380px] lg:shrink-0 flex flex-col h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
