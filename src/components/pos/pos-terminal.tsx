@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, X, Banknote, CreditCard, Smartphone,
-  Package, Loader2, CheckCircle2, Printer
+  Package, Loader2, CheckCircle2, Printer, MessageSquare
 } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { toast } from 'sonner'
@@ -126,6 +126,7 @@ export function PosTerminal() {
           items: cart.items,
           paymentMethod,
           customerName: cart.customerName,
+          customerPhone: cart.customerPhone,
           discount: cart.discount,
           amountTendered: paymentMethod === 'CASH' ? tendered : 0,
         }),
@@ -140,6 +141,14 @@ export function PosTerminal() {
       setCheckoutOpen(false)
       setAmountTendered('')
       toast.success(`Order ${order.orderNumber} completed!`)
+      // Show SMS status if a phone number was provided
+      if (order.smsResult) {
+        if (order.smsResult.success) {
+          toast.success(`SMS receipt sent to customer`, { duration: 4000 })
+        } else {
+          toast.info(`SMS not sent: ${order.smsResult.message}`, { duration: 4000 })
+        }
+      }
       await loadProducts()
     } catch (e: any) {
       toast.error(e.message || 'Checkout failed. Please try again.')
@@ -347,6 +356,24 @@ export function PosTerminal() {
                 </div>
               </ScrollArea>
 
+              {/* Customer info */}
+              <div className="border-t border-border px-4 pt-3 pb-1 grid grid-cols-2 gap-2">
+                <Input
+                  type="text"
+                  value={cart.customerName}
+                  onChange={(e) => cart.setCustomerName(e.target.value)}
+                  placeholder="Customer name (optional)"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  type="tel"
+                  value={cart.customerPhone}
+                  onChange={(e) => cart.setCustomerPhone(e.target.value)}
+                  placeholder="Phone (for SMS receipt)"
+                  className="h-8 text-sm"
+                />
+              </div>
+
               <div className="border-t border-border p-4 space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-sm">
@@ -480,6 +507,16 @@ export function PosTerminal() {
                 })}
               </RadioGroup>
             </div>
+
+            {/* SMS receipt confirmation */}
+            {cart.customerPhone && cart.customerPhone.trim() && (
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-2.5 text-xs">
+                <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-emerald-700 dark:text-emerald-400">
+                  SMS receipt will be sent to <strong>{cart.customerPhone}</strong>
+                </span>
+              </div>
+            )}
 
             {/* Cash payment: amount tendered + change */}
             {paymentMethod === 'CASH' && (

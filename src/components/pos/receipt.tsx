@@ -21,6 +21,7 @@ export interface ReceiptOrder {
   itemsCount: number
   customerName: string | null
   cashierName: string | null
+  notes: string | null
   createdAt: string
   items: {
     id: string
@@ -99,6 +100,9 @@ export function Receipt({ order, showVerifyHint = true, className }: ReceiptProp
         <Row label="Time:" value={new Date(order.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} />
         <Row label="Cashier:" value={order.cashierName || '—'} />
         <Row label="Customer:" value={order.customerName || 'Walk-in'} />
+        {order.notes && order.notes.includes('Customer Phone:') && (
+          <Row label="Phone:" value={order.notes.replace('Customer Phone:', '').trim()} />
+        )}
       </div>
 
       <DashedLine />

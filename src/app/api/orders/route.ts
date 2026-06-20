@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, requirePermission, AuthError, getEffectivePermission, type SessionUser } from '@/lib/auth'
 import { calculateTax, calculateChange } from '@/lib/tax'
+import { sendReceiptSms } from '@/lib/sms'
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     const user = await requirePermission('orderCreate')
     const body = await request.json()
     const {
-      items, paymentMethod, customerName, discount, notes,
+      items, paymentMethod, customerName, customerPhone, discount, notes,
       amountTendered, // for cash payments
     } = body
 
@@ -117,13 +118,36 @@ export async function POST(request: NextRequest) {
         customerName: customerName || null,
         cashierName: user.name,
         cashierId: user.id,
-        notes: notes || null,
+        notes: customerPhone ? `Customer Phone: ${customerPhone}` : (notes || null),
         items: { create: orderItems },
       },
       include: { items: true },
     })
 
-    return NextResponse.json(order, { status: 201 })
+    // ─── Send SMS receipt to customer ───
+    // This runs after the order is saved. If SMS fails, the order still succeeds.
+    let smsResult: { success: boolean; message: string } | null = null
+    if (customerPhone && customerPhone.trim()) {
+      try {
+        smsResult = await sendReceiptSms(customerPhone, {
+          orderNumber: order.orderNumber,
+          total: order.total,
+          paymentMethod: order.paymentMethod,
+          itemsCount: order.itemsCount,
+          customerName: customerName || null,
+        })
+        console.log(`[SMS] ${smsResult.success ? 'Sent' : 'Failed'}: ${smsResult.message}`)
+      } catch (smsError) {
+        console.error('[SMS] Error sending receipt SMS:', smsError)
+        smsResult = { success: false, message: 'SMS sending failed (order completed)' }
+      }
+    }
+
+    // Return the order with SMS status
+    return NextResponse.json({
+      ...order,
+      smsResult: smsResult || { success: false, message: 'No phone number provided' },
+    }, { status: 201 })
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode })

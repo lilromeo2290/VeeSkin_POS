@@ -14,6 +14,7 @@ export interface CartItem {
 interface CartState {
   items: CartItem[]
   customerName: string
+  customerPhone: string
   discount: number
   /** @deprecated kept for backward compat; Ghana tax breakdown is now computed automatically */
   taxRate: number
@@ -24,6 +25,7 @@ interface CartState {
   decrementItem: (productId: string) => void
   clear: () => void
   setCustomerName: (name: string) => void
+  setCustomerPhone: (phone: string) => void
   setDiscount: (amount: number) => void
   setTaxRate: (rate: number) => void
   /** Returns the full Ghana tax breakdown (NHIL, GETFund, VAT, Grand Total) */
@@ -35,6 +37,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       customerName: '',
+      customerPhone: '',
       discount: 0,
       taxRate: 0.15, // legacy — actual rates are now in src/lib/tax.ts
 
@@ -84,9 +87,10 @@ export const useCartStore = create<CartState>()(
             .filter((i) => i.quantity > 0),
         })),
 
-      clear: () => set({ items: [], customerName: '', discount: 0 }),
+      clear: () => set({ items: [], customerName: '', customerPhone: '', discount: 0 }),
 
       setCustomerName: (name) => set({ customerName: name }),
+      setCustomerPhone: (phone) => set({ customerPhone: phone }),
       setDiscount: (amount) => set({ discount: Math.max(0, amount) }),
       setTaxRate: (rate) => set({ taxRate: Math.max(0, Math.min(1, rate)) }),
 
