@@ -89,12 +89,6 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
     }
   }
 
-  async function fillDemoCreds(role: 'admin' | 'manager' | 'cashier') {
-    setEmail(`${role}@veeskin.com`)
-    setPassword('password123')
-    setMode('login')
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center brand-bg-dark">
