@@ -16,7 +16,7 @@ import { AuditLogView } from '@/components/pos/audit-log'
 import { AuthGate } from '@/components/pos/auth-gate'
 import { useCartStore } from '@/lib/cart-store'
 import { Button } from '@/components/ui/button'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { canUserAccessView, type SessionUser } from '@/lib/auth-types'
 
@@ -143,58 +143,47 @@ export default function Home() {
     return <AuthGate onAuthenticated={handleAuthenticated} />
   }
 
-  // Admin sees setup screen if no products
+  // Admin sees empty state if no products — no auto-seed prompt
   if (needsSeed) {
     return (
-      <div className="min-h-screen flex items-center justify-center brand-bg-dark text-white p-4">
-        <div className="max-w-md w-full text-center space-y-6">
-          <div className="relative w-32 h-32 mx-auto rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/10">
-            <Image
-              src="/veeskin-brand.jpg"
-              alt="VeeSkin Essentials"
-              fill
-              sizes="128px"
-              className="object-cover"
-              priority
-            />
-          </div>
-          <div className="space-y-3">
+      <div className="min-h-screen flex bg-muted/30">
+        <Sidebar currentView={'dashboard'} onNavigate={setView} cartCount={cartCount} user={user} onLogout={handleLogout} />
+        <main className="flex-1 flex flex-col min-w-0">
+          <header className="hidden md:flex items-center justify-between px-6 py-3 border-b border-border bg-card">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight brand-gradient-text">VeeSkin</h1>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/70 mt-1">Essentials</p>
+              <h2 className="text-lg font-semibold">Dashboard</h2>
+              <p className="text-xs text-muted-foreground">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
             </div>
-            <p className="text-sm text-white/80 leading-relaxed">
-              Welcome, {user.name}! Your admin account is ready. Now load the demo catalog of skincare &
-              perfume products to start selling.
-            </p>
+          </header>
+          <div className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
+            <div className="flex flex-col items-center justify-center h-96 text-center">
+              <div className="w-16 h-16 rounded-full bg-[#D4A574]/10 flex items-center justify-center mb-4">
+                <Package className="w-8 h-8 text-[#D4A574]" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Welcome to VeeSkin POS</h2>
+              <p className="text-sm text-muted-foreground max-w-md mb-6">
+                Your system is ready. There are no products yet. Start by adding categories and products
+                from the sidebar, or go to New Sale to start processing transactions.
+              </p>
+              <div className="flex gap-3">
+                <Button onClick={() => setView('categories')} variant="outline">
+                  Add Categories
+                </Button>
+                <Button onClick={() => setView('products')} className="brand-gradient hover:opacity-90 border-0">
+                  Add Products
+                </Button>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-muted-foreground underline hover:text-foreground mt-8"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
-          <Button
-            onClick={handleSeed}
-            disabled={seeding}
-            size="lg"
-            className="w-full h-12 brand-gradient hover:opacity-90 text-white text-base font-semibold border-0 shadow-lg shadow-pink-900/30"
-          >
-            {seeding ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Loading catalog...
-              </>
-            ) : (
-              <>
-                Load Demo Catalog
-              </>
-            )}
-          </Button>
-          <p className="text-xs text-white/50">
-            6 categories · 35+ products · 25 sample orders · 3 demo staff accounts
-          </p>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-white/50 underline hover:text-white/80"
-          >
-            Sign out
-          </button>
-        </div>
+        </main>
       </div>
     )
   }
@@ -227,12 +216,6 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {user.role === 'ADMIN' && (
-              <Button variant="outline" size="sm" onClick={handleReseed} disabled={seeding}>
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                Reset Demo Data
-              </Button>
-            )}
           </div>
         </header>
 
