@@ -1165,3 +1165,21 @@ Stage Summary:
 - Timestamp: 2026-06-21 14:14:27 UTC
 - Repository: https://github.com/lilromeo2290/VeeSkin_POS
 - Branch: main
+
+---
+Task ID: git-push-20260621-145515
+Agent: git-push.sh
+Task: Automated commit & push to GitHub
+
+Work Log:
+- Read GH_TOKEN from .env.github (gitignored, never echoed)
+- Staged 1 file(s) with `git add -A`
+- Created commit: fix: remove demo account shortcuts and password hint from login page
+- Pushed 960c0bf to https://github.com/lilromeo2290/VeeSkin_POS.git (main)
+
+Stage Summary:
+- Commit hash: 960c0bf
+- Files changed: 1
+- Timestamp: 2026-06-21 14:55:08 UTC
+- Repository: https://github.com/lilromeo2290/VeeSkin_POS
+- Branch: main
