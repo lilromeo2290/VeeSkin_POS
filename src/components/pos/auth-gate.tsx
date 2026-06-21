@@ -213,31 +213,6 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
                 )}
               </Button>
             </form>
-
-            {mode === 'login' && (
-              <div className="mt-6 pt-4 border-t border-border">
-                <p className="text-xs text-center text-muted-foreground mb-3">
-                  Demo accounts (password: <code className="font-mono bg-muted px-1 rounded">password123</code>)
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { role: 'admin', label: 'Admin', color: 'bg-[#D4A574]' },
-                    { role: 'manager', label: 'Manager', color: 'bg-[#E6A9B6]' },
-                    { role: 'cashier', label: 'Cashier', color: 'bg-[#D4AF37]' },
-                  ].map((acc) => (
-                    <button
-                      key={acc.role}
-                      type="button"
-                      onClick={() => fillDemoCreds(acc.role as 'admin' | 'manager' | 'cashier')}
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors text-xs"
-                    >
-                      <div className={`w-6 h-6 rounded-full ${acc.color}`} />
-                      <span className="font-medium">{acc.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
